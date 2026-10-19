@@ -49,43 +49,55 @@ A **Deal** is an offer to buy a specific item, in a specific area, before a
 deadline, that gets cheaper as more quantity is pledged.
 
 A Deal has:
-- An **item** (e.g. Sugar, 1 kg packs)
+- An **item** (one product per deal)
 - A **wholesaler** supplying it
-- An **area** it's open to (so only nearby people can join → one delivery)
+- An **area** it's open to — a **named society with one fixed pickup point**
+  (so only residents of that society can join → one delivery)
 - A **deadline** (e.g. "closes in 2 days")
-- A **price ladder** (tiers):
+- A **sliding price ladder** of several tiers — customers may pledge **any
+  quantity**, and the price steps down as the pooled total grows:
 
 | Total pledged | Price per unit |
 |---|---|
 | 0–19 kg | ₹45 (retail) |
-| 20–49 kg | ₹41 |
-| 50+ kg | ₹38 (wholesale — target) |
+| 20–29 kg | ₹41 |
+| 30–49 kg | ₹38 |
+| 50+ kg | ₹34 (best) |
+
+There is **no single pass/fail target** — the deal simply settles at whichever
+tier the pooled total has reached when it closes. More neighbours joining only
+ever makes it cheaper.
 
 ### Deal lifecycle (state machine)
 
 ```
-OPEN ──(target reached OR deadline hit)──> LOCKED ──> CONFIRMED ──> DELIVERED ──> COMPLETED
+OPEN ──(deadline hit; top tier may early-lock)──> LOCKED ──> CONFIRMED ──> DELIVERED ──> COMPLETED
   │                                                        
-  └──(deadline hit below minimum)──> CANCELLED (everyone refunded)
+  └──(deadline hit below floor — TBD §9)──> CANCELLED (everyone refunded)
 ```
 
-1. **OPEN** — customers pledge quantities. A live progress bar shows
-   `42 / 50 kg · join to unlock ₹38!`. The displayed price updates in real time
-   as the current tier changes.
-2. **LOCKED** — deadline reached or target hit. The **final tier price is now
-   fixed for everyone**, including early joiners who saw a higher price.
-3. **CONFIRMED** — wholesaler accepts the pooled order; payments captured.
+1. **OPEN** — customers pledge any quantity. A live progress bar shows
+   `42 kg pooled · ₹38 now · +8 kg unlocks ₹34!`. The displayed price updates in
+   real time as the pooled total crosses each tier.
+2. **LOCKED** — deadline reached (or the best tier is hit early). The **tier
+   price reached is now fixed for everyone**, including early joiners who saw a
+   higher price.
+3. **CONFIRMED** — wholesaler accepts the pooled order; escrow captured at the
+   locked price, the held difference refunded to each wallet.
 4. **DELIVERED** — one drop to the area's pickup point; coordinator marks received.
 5. **COMPLETED** — residents collect their shares; deal closed.
 6. **CANCELLED** — didn't reach the minimum viable quantity by the deadline;
    all pledges refunded.
 
-### Key product decisions (to confirm — see §9)
-- **Everyone pays the final unlocked price**, even if they joined when it showed
-  a higher tier. (This is the "join early, it only gets better" promise — it's
-  what drives people to pledge *before* the target, not wait.)
-- **Payment timing**: pledge now, charged only when the deal LOCKS. (Avoids
-  refunds on the common cancel case.)
+### Key product decisions
+- **Everyone pays the final unlocked tier price**, even if they joined when it
+  showed a higher price. (This is the "join early, it only gets cheaper"
+  promise — it's what drives people to pledge *now*, not wait.)
+- **Escrow / wallet pre-pay**: when a customer pledges, the **top (retail) price
+  × their quantity is held** in their wallet. When the deal LOCKS at a lower
+  tier, they're **charged the unlocked price and the difference is refunded** to
+  their wallet. A customer is never charged more than they agreed, and the
+  savings return automatically. If the deal cancels, the full hold is refunded.
 
 ---
 
@@ -101,16 +113,15 @@ Deliberately small — prove the mechanic with real people in **one** society.
   confirm the order.
 - Coordinator: mark a delivered order as "arrived at pickup point".
 - Real-time deal progress (the live bar is the "wow").
-- Simple in-app notifications: "your deal unlocked wholesale!", "collect your order".
+- **Wallet / escrow**: load money, hold on pledge, charge-and-refund on lock.
+- Simple in-app notifications: "your deal unlocked a lower price!", "collect your order".
 
 **Explicitly out of scope for MVP** (do later)
-- In-app payments (MVP can start **cash-on-collection** to avoid payment-gateway
-  and refund complexity — a huge shortcut).
 - Ratings/reviews, chat, multiple areas, delivery tracking, invoicing, GST.
 - iOS.
 
-> Starting cash-on-collection + single society lets us test *"will people
-> actually pool?"* — the only question that matters — without building payments.
+> Single society + the wallet mechanic lets us test *"will people actually
+> pool?"* — the only question that matters — in one controlled area.
 
 ---
 
@@ -138,28 +149,35 @@ A simple bottom-nav app. Role determines which tabs show.
 ## 6. Data model (core entities)
 
 ```
-User(id, phone, name, role[customer|wholesaler|coordinator|admin], areaId)
+User(id, phone, name, role[customer|wholesaler|coordinator|admin], societyId)
 
-Area(id, name, pincode, pickupPointAddress, coordinatorUserId)
+Society(id, name, address, pincode, pickupPointAddress, coordinatorUserId)
 
 Wholesaler(id, userId, businessName, verified)
 
 Item(id, name, unit[kg|L|pack], photoUrl)
 
-Deal(id, itemId, wholesalerId, areaId,
-     tiers:[{minQty, pricePerUnit}],
-     targetQty, minViableQty,
-     deadline, status, finalPricePerUnit?,
+Deal(id, itemId, wholesalerId, societyId,
+     tiers:[{minQty, pricePerUnit}],   // sliding ladder, ascending minQty
+     minFloorQty,                      // below this at close → CANCELLED (TBD §9)
+     deadline, status, lockedPricePerUnit?,
      totalPledgedQty)
 
-Pledge(id, dealId, userId, qty, status[active|locked|collected|refunded], createdAt)
+Pledge(id, dealId, userId, qty,        // any quantity
+       heldAmount,                     // top-tier price × qty, escrowed on pledge
+       status[active|locked|collected|refunded], createdAt)
 
-Order(id, dealId, status, totalAmount, deliveredAt?)  // the pooled order to the wholesaler
+Order(id, dealId, status, totalAmount, deliveredAt?)  // pooled order to the wholesaler
+
+Wallet(id, userId, balance)
+WalletTxn(id, walletId, type[topup|hold|charge|refund], amount, dealId?, createdAt)
 ```
 
-Relationships: a **Deal** belongs to one Wholesaler + one Area; many **Pledges**
-point at a Deal; when it locks, pledges roll up into one **Order**.
-`totalPledgedQty` is the number the live progress bar reads.
+Relationships: a **Deal** belongs to one Wholesaler + one Society; many
+**Pledges** point at a Deal; when it locks, pledges roll up into one **Order**.
+`totalPledgedQty` is the number the live progress bar reads. Each Pledge's
+`heldAmount` moves through the **Wallet** as hold → charge + refund on lock, or
+a full refund on cancel.
 
 ---
 
@@ -197,18 +215,28 @@ later if you outgrow it.
 
 ---
 
-## 9. Open questions to decide before Phase 1
+## 9. Decisions & remaining open questions
 
-1. **Minimum viable quantity** — below the target but above zero, do we still
-   ship (at whatever tier was reached) or cancel? I lean "ship at reached tier,
-   cancel only below a floor."
-2. **Payments** — confirm MVP is cash-on-collection? (Strongly recommended.)
-3. **Who creates wholesalers?** — self-signup then we verify, or we onboard them
-   manually at first? (Manual is safer at the start.)
-4. **One item per deal, or a basket?** — MVP = one item per deal (simpler).
-5. **Area definition** — by society name, by pincode, or by map radius?
-6. **Trust/fraud** — what if someone pledges and never collects? Coordinator
-   vouching + a no-show flag is probably enough for a pilot.
+**Decided**
+- ✅ **Pricing** — a sliding multi-tier ladder (no single pass/fail target); the
+  deal settles at whichever tier the pooled total reaches by the deadline.
+- ✅ **Quantity** — customers pledge any amount.
+- ✅ **Payments** — wallet / escrow pre-pay: hold top-tier price on pledge,
+  charge the locked price and refund the difference on lock.
+- ✅ **Area** — a named society with one fixed pickup point.
+
+**Still open (to settle before Phase 1)**
+1. **Floor** — if almost nobody joins (e.g. 3 kg by deadline), do we ship at the
+   top/retail tier anyway, or set a **minimum quantity** below which the deal
+   cancels and refunds? (Protects the wholesaler from a pointless tiny delivery.)
+2. **Deal contents** — confirm **one product per deal** (recommended), vs a
+   basket of products in a single deal.
+
+**Proposed defaults (overridable)**
+3. **Wholesaler onboarding** — onboard manually/verify at first, open
+   self-signup later. (Safer for a pilot.)
+4. **Trust/fraud** — a pledge-and-no-collect is handled by coordinator vouching
+   + a no-show flag; escrow pre-pay already removes most of this risk.
 
 ---
 
