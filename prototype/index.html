@@ -1,0 +1,519 @@
+<title>Community Rashan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: a scrolling mobile shopping feed — sticky society header on top,
+     wholesaler groups with a value-discount meter, item cards with live price
+     ladders, and a sticky "your order" bar pinned to the bottom. */
+  :root {
+    --bg: #f4f6f3;
+    --surface: #ffffff;
+    --surface-2: #eef1ec;
+    --fg: #17211b;
+    --muted: #5f6b63;
+    --line: #dde3dc;
+    --primary: #15794a;
+    --primary-ink: #ffffff;
+    --accent: #c47d05;
+    --accent-soft: #fbeccb;
+    --danger: #b5482f;
+    --shadow: 0 1px 2px rgba(23,33,27,.06), 0 6px 18px rgba(23,33,27,.07);
+
+    --font-display: "Bricolage Grotesque", Georgia, serif;
+    --font-body: "Manrope", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f1512;
+      --surface: #16201b;
+      --surface-2: #1b2620;
+      --fg: #e8efe9;
+      --muted: #9aa89f;
+      --line: #273229;
+      --primary: #3fae73;
+      --primary-ink: #06130c;
+      --accent: #f2b23c;
+      --accent-soft: #2a2415;
+      --danger: #e07a5f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f1512;
+    --surface: #16201b;
+    --surface-2: #1b2620;
+    --fg: #e8efe9;
+    --muted: #9aa89f;
+    --line: #273229;
+    --primary: #3fae73;
+    --primary-ink: #06130c;
+    --accent: #f2b23c;
+    --accent-soft: #2a2415;
+    --danger: #e07a5f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 92px; /* room for the sticky order bar */
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    background: var(--primary);
+    z-index: 30;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* ---- Header ---- */
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    background: var(--primary);
+    color: var(--primary-ink);
+  }
+  .head-inner { padding-block: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand .logo { display: flex; align-items: center; gap: 8px; }
+  .brand .mark {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    background: var(--primary-ink); color: var(--primary);
+    display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 17px;
+  }
+  .brand .name { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .2px; }
+  .brand .society { font-size: 12px; opacity: .85; margin-top: 1px; }
+  .wallet {
+    text-align: right; background: rgba(255,255,255,.14); border-radius: 11px; padding: 6px 11px;
+  }
+  .wallet .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; opacity: .85; }
+  .wallet .val { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+  .cyclebar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: rgba(255,255,255,.12); border-radius: 11px; padding: 8px 11px; font-size: 12.5px;
+  }
+  .cyclebar b { font-weight: 700; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-ink); opacity: .55; }
+
+  /* ---- Controls ---- */
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  button { font-family: var(--font-body); cursor: pointer; }
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+    border-radius: 11px; padding: 9px 14px; font-weight: 600; font-size: 13.5px;
+    display: inline-flex; align-items: center; gap: 7px; box-shadow: var(--shadow);
+  }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hint { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+
+  /* ---- Wholesaler group ---- */
+  .supplier { margin-top: 22px; }
+  .supplier-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  .supplier-head h2 { font-size: 18px; display: flex; align-items: center; gap: 7px; }
+  .verified { color: var(--primary); font-size: 13px; font-weight: 700; }
+  .supplier-head .sub { font-size: 12px; color: var(--muted); }
+
+  .valuemeter {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 12px 13px; box-shadow: var(--shadow); margin: 8px 0 14px;
+  }
+  .vm-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+  .vm-top .amt { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+  .vm-badge {
+    font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .vm-badge.off { background: var(--surface-2); color: var(--muted); }
+  .track { position: relative; height: 9px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .track > span { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 999px; transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .vm-marks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .vm-marks span.hit { color: var(--primary); font-weight: 700; }
+
+  /* ---- Item cards ---- */
+  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  @media (min-width: 560px) { .grid { grid-template-columns: 1fr 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    padding: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
+    min-width: 0;
+  }
+  .card.mine { border-color: var(--primary); }
+  .citem { display: flex; align-items: flex-start; gap: 11px; }
+  .emoji { font-size: 26px; line-height: 1; flex: none; }
+  .cname { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .cunit { font-size: 12px; color: var(--muted); }
+  .price-row { display: flex; align-items: baseline; gap: 8px; margin-left: auto; text-align: right; }
+  .price-now { font-family: var(--font-display); font-weight: 700; font-size: 21px; color: var(--primary); }
+  .price-now small { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .price-was { font-size: 12.5px; color: var(--muted); text-decoration: line-through; }
+
+  .ladder { display: flex; gap: 4px; }
+  .rung { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); }
+  .rung.on { background: var(--primary); }
+  .rung.best { background: var(--accent); }
+
+  .pool { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .pool .pooled { color: var(--muted); }
+  .pool .pooled b { color: var(--fg); }
+  .unlock { color: var(--accent); font-weight: 700; }
+  .unlock.max { color: var(--primary); }
+
+  .pledge { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 11px; }
+  .stepper { display: flex; align-items: center; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .stepper button { width: 34px; height: 34px; border: 0; background: var(--surface-2); color: var(--fg); font-size: 18px; font-weight: 700; display: grid; place-items: center; }
+  .stepper button:active { background: var(--primary); color: var(--primary-ink); }
+  .stepper .qty { min-width: 46px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mine-note { font-size: 12px; text-align: right; }
+  .mine-note .held { color: var(--muted); }
+  .mine-note .save { color: var(--primary); font-weight: 700; }
+
+  /* ---- Sticky order bar ---- */
+  .orderbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -6px 20px rgba(23,33,27,.08);
+  }
+  .orderbar .ob-inner {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding-block: 11px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    max-width: 760px; margin: 0 auto;
+  }
+  .ob-figures { min-width: 0; }
+  .ob-figures .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .ob-figures .pay { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
+  .ob-figures .pay s { color: var(--muted); font-size: 13px; font-weight: 600; margin-left: 7px; }
+  .ob-figures .sub { font-size: 12px; color: var(--primary); font-weight: 600; }
+  .ob-cta { flex: none; }
+
+  .pop { animation: pop .45s cubic-bezier(.2,.8,.2,1); }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  footer { color: var(--muted); font-size: 11.5px; text-align: center; margin: 26px 0 8px; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Manrope:wght@500;600;700&display=swap">
+
+<header>
+  <div class="wrap head-inner">
+    <div class="brand">
+      <div class="logo">
+        <div class="mark">CR</div>
+        <div>
+          <div class="name">Community Rashan</div>
+          <div class="society">Green Meadows Society · Pune</div>
+        </div>
+      </div>
+      <div class="wallet">
+        <div class="lbl">Wallet</div>
+        <div class="val tnum" id="walletVal">₹2,000</div>
+      </div>
+    </div>
+    <div class="cyclebar">
+      <span>🗓️ This cycle <b>closes Thursday</b></span>
+      <span class="dot"></span>
+      <span class="tnum" id="countdown">2d 06h left</span>
+      <span class="dot"></span>
+      <span>Pickup: <b>Tower B lobby</b></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="controls">
+    <button class="btn primary" id="simBtn">👥 Simulate neighbours ordering</button>
+    <button class="btn" id="resetBtn">↺ Reset</button>
+  </div>
+  <p class="hint">Pledge any quantity. As the whole society pools more, the per-item price drops — and once a wholesaler's total order crosses ₹50,000 / ₹1,00,000, an <b>extra discount</b> unlocks for everyone. You only ever pay the final price; the difference comes back to your wallet.</p>
+
+  <div id="suppliers"></div>
+
+  <footer>Interactive prototype · sample data · not a live store</footer>
+</main>
+
+<div class="orderbar">
+  <div class="ob-inner">
+    <div class="ob-figures">
+      <div class="lbl">Your order · held in escrow <span class="tnum" id="heldVal">₹0</span></div>
+      <div class="pay tnum" id="payVal">₹0 <s id="retailVal"></s></div>
+      <div class="sub" id="saveVal">Add items to start pooling</div>
+    </div>
+    <div class="ob-cta"><button class="btn primary" id="confirmBtn">Confirm pledge</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Sample catalogue: one society, one cycle, two verified wholesalers ----
+  // tiers: ascending by minQty; price at minQty 0 is the retail (top) price.
+  var DATA = [
+    {
+      id: "sharma", name: "Sharma Traders", sub: "Grains, dal & oil · Market Yard",
+      valueTiers: [{ min: 50000, pct: 2 }, { min: 100000, pct: 4 }],
+      items: [
+        { id: "sugar", name: "Sugar", unit: "per kg", emoji: "🧂", base: 42,
+          tiers: [{min:0,price:45},{min:20,price:41},{min:30,price:38},{min:50,price:34}] },
+        { id: "atta", name: "Chakki Atta", unit: "per kg", emoji: "🌾", base: 70,
+          tiers: [{min:0,price:42},{min:25,price:38},{min:50,price:35},{min:100,price:32}] },
+        { id: "toor", name: "Toor Dal", unit: "per kg", emoji: "🫘", base: 18,
+          tiers: [{min:0,price:140},{min:10,price:128},{min:25,price:120},{min:50,price:112}] },
+        { id: "oil", name: "Sunflower Oil", unit: "per litre", emoji: "🛢️", base: 12,
+          tiers: [{min:0,price:150},{min:10,price:140},{min:20,price:132},{min:40,price:126}] }
+      ]
+    },
+    {
+      id: "verma", name: "Verma Agro", sub: "Rice, tea & spices · Hadapsar",
+      valueTiers: [{ min: 40000, pct: 2 }, { min: 80000, pct: 3.5 }],
+      items: [
+        { id: "rice", name: "Basmati Rice", unit: "per kg", emoji: "🍚", base: 34,
+          tiers: [{min:0,price:95},{min:20,price:86},{min:50,price:80},{min:100,price:74}] },
+        { id: "tea", name: "Assam Tea", unit: "per kg", emoji: "🍵", base: 6,
+          tiers: [{min:0,price:320},{min:10,price:296},{min:25,price:280},{min:50,price:262}] }
+      ]
+    }
+  ];
+
+  var WALLET_START = 2000;
+  var state = {}; // itemId -> { pooled (others), mine }
+
+  function resetState() {
+    DATA.forEach(function (s) {
+      s.items.forEach(function (it) { state[it.id] = { pooled: it.base, mine: 0 }; });
+    });
+  }
+
+  // ---- Pricing helpers ----
+  function tierFor(item, qty) {
+    var t = item.tiers[0];
+    for (var i = 0; i < item.tiers.length; i++) if (qty >= item.tiers[i].min) t = item.tiers[i];
+    return t;
+  }
+  function nextTier(item, qty) {
+    for (var i = 0; i < item.tiers.length; i++) if (item.tiers[i].min > qty) return item.tiers[i];
+    return null;
+  }
+  function retailPrice(item) { return item.tiers[0].price; }
+  function total(item) { return state[item.id].pooled + state[item.id].mine; }
+
+  // gross order value for a wholesaler = Σ currentTierPrice × pooledTotal
+  function grossValue(sup) {
+    return sup.items.reduce(function (sum, it) {
+      var q = total(it); return sum + tierFor(it, q).price * q;
+    }, 0);
+  }
+  function valueDiscount(sup) {
+    var g = grossValue(sup), pct = 0;
+    sup.valueTiers.forEach(function (vt) { if (g >= vt.min) pct = vt.pct; });
+    return pct;
+  }
+
+  var inr = function (n) { return "₹" + Math.round(n).toLocaleString("en-IN"); };
+  var inr1 = function (n) { return "₹" + (Math.round(n * 10) / 10).toLocaleString("en-IN"); };
+
+  // ---- Build DOM once ----
+  var host = document.getElementById("suppliers");
+  function build() {
+    host.innerHTML = "";
+    DATA.forEach(function (sup) {
+      var wrap = document.createElement("section");
+      wrap.className = "supplier";
+      wrap.innerHTML =
+        '<div class="supplier-head">' +
+          '<div><h2>' + sup.name + ' <span class="verified">✓ verified</span></h2>' +
+          '<div class="sub">' + sup.sub + '</div></div>' +
+        '</div>' +
+        '<div class="valuemeter" id="vm-' + sup.id + '"></div>' +
+        '<div class="grid" id="grid-' + sup.id + '"></div>';
+      host.appendChild(wrap);
+      var grid = wrap.querySelector("#grid-" + sup.id);
+      sup.items.forEach(function (it) {
+        var card = document.createElement("div");
+        card.className = "card";
+        card.id = "card-" + it.id;
+        grid.appendChild(card);
+      });
+    });
+  }
+
+  function renderValueMeter(sup) {
+    var el = document.getElementById("vm-" + sup.id);
+    var g = grossValue(sup);
+    var pct = valueDiscount(sup);
+    var tiers = sup.valueTiers;
+    var cap = tiers[tiers.length - 1].min;
+    var fill = Math.min(100, (g / cap) * 100);
+    var next = null;
+    for (var i = 0; i < tiers.length; i++) if (g < tiers[i].min) { next = tiers[i]; break; }
+
+    var badge = pct > 0
+      ? '<span class="vm-badge">▼ extra ' + pct + '% off everyone</span>'
+      : '<span class="vm-badge off">no bulk discount yet</span>';
+
+    var marks = tiers.map(function (vt) {
+      var hit = g >= vt.min;
+      return '<span class="' + (hit ? "hit" : "") + '">' + (hit ? "✓ " : "") + inr(vt.min) + " → " + vt.pct + "%</span>";
+    }).join("");
+
+    var lead = next
+      ? "Add " + inr(next.min - g) + " more to this wholesaler to unlock " + next.pct + "% off"
+      : "Top bulk discount unlocked 🎉";
+
+    el.innerHTML =
+      '<div class="vm-top"><div><div class="lbl" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Society’s order to ' + sup.name + '</div>' +
+        '<div class="amt tnum">' + inr(g) + '</div></div>' + badge + '</div>' +
+      '<div class="track"><span style="width:' + fill + '%"></span></div>' +
+      '<div class="vm-marks">' + marks + '</div>' +
+      '<div class="hint" style="margin-top:8px">' + lead + '</div>';
+  }
+
+  function renderCard(sup, it) {
+    var card = document.getElementById("card-" + it.id);
+    var q = total(it);
+    var st = state[it.id];
+    var cur = tierFor(it, q);
+    var nt = nextTier(it, q);
+    var retail = retailPrice(it);
+    var vpct = valueDiscount(sup);
+
+    // ladder rungs
+    var rungs = it.tiers.map(function (t, i) {
+      var on = q >= t.min;
+      var best = i === it.tiers.length - 1;
+      return '<div class="rung ' + (on ? (best ? "best" : "on") : "") + '"></div>';
+    }).join("");
+
+    var unlock = nt
+      ? '<span class="unlock">+' + (nt.min - q) + ' unlocks ' + inr(nt.price) + '</span>'
+      : '<span class="unlock max">★ best price reached</span>';
+
+    // my economics
+    var myFinalUnit = cur.price * (1 - vpct / 100);
+    var held = retail * st.mine;
+    var finalCost = myFinalUnit * st.mine;
+    var refund = held - finalCost;
+
+    card.className = "card" + (st.mine > 0 ? " mine" : "");
+    card.innerHTML =
+      '<div class="citem">' +
+        '<span class="emoji">' + it.emoji + '</span>' +
+        '<div><div class="cname">' + it.name + '</div><div class="cunit">' + it.unit + '</div></div>' +
+        '<div class="price-row">' +
+          (cur.price < retail ? '<span class="price-was tnum">' + inr(retail) + '</span>' : '') +
+          '<span class="price-now tnum">' + inr(cur.price) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ladder">' + rungs + '</div>' +
+      '<div class="pool"><span class="pooled"><b class="tnum">' + q + '</b> ' + unitWord(it) + ' pooled</span>' + unlock + '</div>' +
+      '<div class="pledge">' +
+        '<div class="stepper" role="group" aria-label="Pledge quantity for ' + it.name + '">' +
+          '<button type="button" data-dec="' + it.id + '" aria-label="less">−</button>' +
+          '<span class="qty tnum" id="qty-' + it.id + '">' + st.mine + '</span>' +
+          '<button type="button" data-inc="' + it.id + '" aria-label="more">+</button>' +
+        '</div>' +
+        '<div class="mine-note">' +
+          (st.mine > 0
+            ? '<div class="held tnum">held ' + inr(held) + '</div><div class="save tnum">pay ' + inr(finalCost) + ' · save ' + inr(refund) + '</div>'
+            : '<div class="held">add your quantity</div>') +
+        '</div>' +
+      '</div>';
+  }
+
+  function unitWord(it) { return it.unit.indexOf("litre") > -1 ? "L" : "kg"; }
+
+  function renderAll(pulse) {
+    DATA.forEach(function (sup) {
+      renderValueMeter(sup);
+      sup.items.forEach(function (it) { renderCard(sup, it); });
+    });
+    renderOrderBar(pulse);
+  }
+
+  function renderOrderBar(pulse) {
+    var held = 0, finalCost = 0;
+    DATA.forEach(function (sup) {
+      var vpct = valueDiscount(sup);
+      sup.items.forEach(function (it) {
+        var st = state[it.id];
+        if (st.mine <= 0) return;
+        var cur = tierFor(it, total(it));
+        held += retailPrice(it) * st.mine;
+        finalCost += cur.price * (1 - vpct / 100) * st.mine;
+      });
+    });
+    var refund = held - finalCost;
+    document.getElementById("heldVal").textContent = inr(held);
+    document.getElementById("walletVal").textContent = inr(WALLET_START - held);
+    var payEl = document.getElementById("payVal");
+    payEl.firstChild.textContent = inr1(finalCost) + " ";
+    document.getElementById("retailVal").textContent = held > 0 ? inr(held) : "";
+    var sub = document.getElementById("saveVal");
+    if (held > 0) {
+      var pctSave = Math.round((refund / held) * 100);
+      sub.textContent = "You save " + inr(refund) + " (" + pctSave + "%) vs buying alone · refunded to wallet";
+    } else {
+      sub.textContent = "Add items to start pooling";
+    }
+    if (pulse) { payEl.classList.remove("pop"); void payEl.offsetWidth; payEl.classList.add("pop"); }
+  }
+
+  // ---- Interaction ----
+  function findItem(id) {
+    for (var i = 0; i < DATA.length; i++)
+      for (var j = 0; j < DATA[i].items.length; j++)
+        if (DATA[i].items[j].id === id) return DATA[i].items[j];
+    return null;
+  }
+  document.addEventListener("click", function (e) {
+    var inc = e.target.getAttribute && e.target.getAttribute("data-inc");
+    var dec = e.target.getAttribute && e.target.getAttribute("data-dec");
+    if (inc) { state[inc].mine += stepFor(inc); renderAll(true); }
+    else if (dec) { state[dec].mine = Math.max(0, state[dec].mine - stepFor(dec)); renderAll(true); }
+  });
+  function stepFor(id) { return (id === "tea" || id === "toor") ? 1 : 5; } // dal/tea bought by the kilo, staples in 5s
+
+  document.getElementById("simBtn").addEventListener("click", function () {
+    // a handful of neighbours each pledge a bit of something
+    var n = 3 + Math.floor(Math.random() * 3);
+    for (var k = 0; k < n; k++) {
+      var sup = DATA[Math.floor(Math.random() * DATA.length)];
+      var it = sup.items[Math.floor(Math.random() * sup.items.length)];
+      state[it.id].pooled += stepFor(it.id) * (1 + Math.floor(Math.random() * 4));
+    }
+    renderAll(true);
+  });
+  document.getElementById("resetBtn").addEventListener("click", function () { resetState(); renderAll(false); });
+  document.getElementById("confirmBtn").addEventListener("click", function () {
+    var btn = this, old = btn.textContent;
+    btn.textContent = "✓ Pledged — held in escrow";
+    setTimeout(function () { btn.textContent = old; }, 1600);
+  });
+
+  resetState();
+  build();
+  renderAll(false);
+})();
+</script>
