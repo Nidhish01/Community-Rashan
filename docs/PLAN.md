@@ -28,9 +28,14 @@ Everybody wins:
 
 ## 2. Who uses it (personas)
 
+> **Primary user: the Indian homemaker ("aunty").** Most customers are women
+> aged ~35–65 who run the household grocery budget. They're value-conscious,
+> trust-driven, heavy WhatsApp users, and have a wide range of English comfort.
+> The whole app is designed around them — see §11.
+
 | Persona | Who they are | What they need |
 |---|---|---|
-| **Customer / Resident** | Someone in a society/colony/area | Browse deals nearby, pledge a quantity, see the price drop as the group fills, pay, collect |
+| **Customer / Resident (mostly aunties)** | The homemaker who buys the household rashan | Simple bilingual screens, big text, clear savings in ₹, trust that her money is safe, WhatsApp reminders |
 | **Wholesaler / Supplier** | A bulk seller (mandi trader, distributor) | List items with tiered/bulk pricing, see pooled orders, confirm & fulfil, get paid |
 | **Society / Area Admin** (a *coordinator*) | A trusted resident or RWA member | Manage the area's pickup point, vouch for the group, resolve collection issues |
 | **Platform Admin** (us) | Operator | Onboard & verify wholesalers, handle disputes, oversee areas |
@@ -294,3 +299,31 @@ later if you outgrow it.
 engine later extends beyond groceries (cleaning supplies, stationery, anything
 with a wholesale break), but groceries are the right wedge: frequent, everyone
 needs them, clear price gap.
+
+---
+
+## 11. Designing for the audience (Indian homemakers / "aunties")
+
+The primary user is the household's grocery decision-maker — mostly women,
+~35–65, value-conscious, trust-driven, and far more at home on WhatsApp than in
+a typical app. Every UX choice bends to her:
+
+- **Bilingual, plain language.** Hindi + English side by side, big readable
+  type, generous tap targets. No finance/English jargon — not "escrow",
+  "pledge", "tier", but *"पैसा safe है"* (money is safe), *"जोड़ें"* (add),
+  *"कम दाम"* (lower price). (Regional languages — Marathi, Tamil, etc. — later.)
+- **Savings first.** The biggest number on the screen is the *bachat* in ₹
+  ("आपने ₹120 बचाए"), not a percentage. A good deal is the whole emotional hook.
+- **Trust & social proof.** Show how many families in *her* society already
+  joined this cycle ("24 families ने order किया") — it's what makes pooling feel
+  safe and worth doing. The coordinator is the familiar, trusted "building aunty".
+- **Money made simple & safe.** Explain the wallet in her terms: she's never
+  charged more than she agreed, and any extra comes straight back. No surprises.
+- **Dead-simple flow.** Few screens, few steps, familiar grocery items with
+  pictures, and a "my usual list" to reorder staples in one tap (later).
+- **WhatsApp-native.** The "cycle closing today" nudge and "collect your order"
+  message go to **WhatsApp**, where she already is — not buried in app notifications.
+- **Voice & accessibility (later).** Voice search / ordering and high-contrast
+  large-text modes widen the door for less tech-comfortable users.
+
+These principles are reflected in the interactive prototype (`prototype/`).

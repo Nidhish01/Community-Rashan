@@ -1,519 +1,448 @@
 <title>Community Rashan</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
-  /* Layout: a scrolling mobile shopping feed — sticky society header on top,
-     wholesaler groups with a value-discount meter, item cards with live price
-     ladders, and a sticky "your order" bar pinned to the bottom. */
+  /* Layout: a Blinkit-style grocery app — sticky top bar with search, a group-buy
+     cycle banner, category chips, a product grid, and a bottom tab bar switching
+     Home / Cart / Orders / Wallet. Group-buy pricing + aunty-first bilingual UI. */
   :root {
-    --bg: #f4f6f3;
+    --bg: #f3f5f2;
     --surface: #ffffff;
     --surface-2: #eef1ec;
-    --fg: #17211b;
-    --muted: #5f6b63;
-    --line: #dde3dc;
-    --primary: #15794a;
-    --primary-ink: #ffffff;
+    --fg: #16211b;
+    --muted: #64716a;
+    --line: #e2e7df;
+    --green: #15794a;
+    --green-ink: #ffffff;
+    --yellow: #f4c233;
+    --yellow-ink: #3a2e05;
     --accent: #c47d05;
     --accent-soft: #fbeccb;
+    --save: #15794a;
     --danger: #b5482f;
-    --shadow: 0 1px 2px rgba(23,33,27,.06), 0 6px 18px rgba(23,33,27,.07);
-
-    --font-display: "Bricolage Grotesque", Georgia, serif;
-    --font-body: "Manrope", system-ui, sans-serif;
+    --shadow: 0 1px 2px rgba(22,33,27,.05), 0 8px 22px rgba(22,33,27,.07);
+    --font-display: "Baloo 2", "Mukta", system-ui, sans-serif;
+    --font-body: "Mukta", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f1512;
-      --surface: #16201b;
-      --surface-2: #1b2620;
-      --fg: #e8efe9;
-      --muted: #9aa89f;
-      --line: #273229;
-      --primary: #3fae73;
-      --primary-ink: #06130c;
-      --accent: #f2b23c;
-      --accent-soft: #2a2415;
-      --danger: #e07a5f;
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
-      color-scheme: dark;
+      --bg: #0f1512; --surface: #16201b; --surface-2: #1c2721; --fg: #e9efe9;
+      --muted: #9aa89f; --line: #273229; --green: #3fae73; --green-ink: #06130c;
+      --yellow: #f4c233; --yellow-ink: #3a2e05; --accent: #f2b23c; --accent-soft: #2a2415;
+      --save: #58c489; --danger: #e07a5f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4); color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f1512;
-    --surface: #16201b;
-    --surface-2: #1b2620;
-    --fg: #e8efe9;
-    --muted: #9aa89f;
-    --line: #273229;
-    --primary: #3fae73;
-    --primary-ink: #06130c;
-    --accent: #f2b23c;
-    --accent-soft: #2a2415;
-    --danger: #e07a5f;
-    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
-    color-scheme: dark;
+    --bg: #0f1512; --surface: #16201b; --surface-2: #1c2721; --fg: #e9efe9;
+    --muted: #9aa89f; --line: #273229; --green: #3fae73; --green-ink: #06130c;
+    --yellow: #f4c233; --yellow-ink: #3a2e05; --accent: #f2b23c; --accent-soft: #2a2415;
+    --save: #58c489; --danger: #e07a5f;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.4); color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.45;
-    -webkit-font-smoothing: antialiased;
-    padding-bottom: 92px; /* room for the sticky order bar */
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.4;
+    -webkit-font-smoothing: antialiased; padding-bottom: 76px;
   }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0 0 auto;
-    height: env(safe-area-inset-top, 0px);
-    background: var(--primary);
-    z-index: 30;
-  }
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
-  }
-  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); background: var(--green); z-index: 40; }
+  .wrap { max-width: 820px; margin: 0 auto; padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px)); }
+  h1,h2,h3 { font-family: var(--font-display); margin: 0; font-weight: 700; text-wrap: balance; }
   .tnum { font-variant-numeric: tabular-nums; }
-
-  /* ---- Header ---- */
-  header {
-    position: sticky;
-    top: env(safe-area-inset-top, 0px);
-    z-index: 20;
-    background: var(--primary);
-    color: var(--primary-ink);
-  }
-  .head-inner { padding-block: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
-  .brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .brand .logo { display: flex; align-items: center; gap: 8px; }
-  .brand .mark {
-    width: 30px; height: 30px; border-radius: 9px; flex: none;
-    background: var(--primary-ink); color: var(--primary);
-    display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 17px;
-  }
-  .brand .name { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: .2px; }
-  .brand .society { font-size: 12px; opacity: .85; margin-top: 1px; }
-  .wallet {
-    text-align: right; background: rgba(255,255,255,.14); border-radius: 11px; padding: 6px 11px;
-  }
-  .wallet .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .07em; opacity: .85; }
-  .wallet .val { font-family: var(--font-display); font-weight: 700; font-size: 17px; }
-  .cyclebar {
-    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    background: rgba(255,255,255,.12); border-radius: 11px; padding: 8px 11px; font-size: 12.5px;
-  }
-  .cyclebar b { font-weight: 700; }
-  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary-ink); opacity: .55; }
-
-  /* ---- Controls ---- */
-  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
   button { font-family: var(--font-body); cursor: pointer; }
-  .btn {
-    border: 1px solid var(--line); background: var(--surface); color: var(--fg);
-    border-radius: 11px; padding: 9px 14px; font-weight: 600; font-size: 13.5px;
-    display: inline-flex; align-items: center; gap: 7px; box-shadow: var(--shadow);
-  }
-  .btn.primary { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
-  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .hint { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+  .hi { color: var(--muted); font-weight: 500; }
 
-  /* ---- Wholesaler group ---- */
-  .supplier { margin-top: 22px; }
-  .supplier-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-  .supplier-head h2 { font-size: 18px; display: flex; align-items: center; gap: 7px; }
-  .verified { color: var(--primary); font-size: 13px; font-weight: 700; }
-  .supplier-head .sub { font-size: 12px; color: var(--muted); }
+  /* ---- Top bar ---- */
+  header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: var(--green); color: var(--green-ink); }
+  .topline { padding-block: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .loc { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .loc .where { min-width: 0; }
+  .loc .where .t1 { font-family: var(--font-display); font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 5px; }
+  .loc .where .t2 { font-size: 12.5px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wpill { background: rgba(255,255,255,.16); border-radius: 12px; padding: 5px 11px; text-align: right; flex: none; }
+  .wpill .l { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; opacity: .85; }
+  .wpill .v { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .search { display: flex; align-items: center; gap: 8px; background: var(--surface); color: var(--fg); border-radius: 12px; padding: 10px 13px; box-shadow: var(--shadow); }
+  .search input { border: 0; outline: 0; background: transparent; color: var(--fg); font-size: 15px; width: 100%; font-family: var(--font-body); }
+  .search .ic { font-size: 16px; }
 
-  .valuemeter {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-    padding: 12px 13px; box-shadow: var(--shadow); margin: 8px 0 14px;
-  }
-  .vm-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
-  .vm-top .amt { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
-  .vm-badge {
-    font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-    background: var(--accent-soft); color: var(--accent);
-  }
-  .vm-badge.off { background: var(--surface-2); color: var(--muted); }
-  .track { position: relative; height: 9px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-  .track > span { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 999px; transition: width .5s cubic-bezier(.2,.7,.2,1); }
-  .vm-marks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 6px; }
-  .vm-marks span.hit { color: var(--primary); font-weight: 700; }
+  /* ---- Cycle banner ---- */
+  .banner { background: linear-gradient(120deg, var(--yellow), #ffd968); color: var(--yellow-ink); border-radius: 16px; padding: 13px 15px; margin-top: 14px; box-shadow: var(--shadow); }
+  .banner .b1 { font-family: var(--font-display); font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .banner .b2 { font-size: 13px; margin-top: 3px; font-weight: 600; }
+  .social { display: flex; align-items: center; gap: 9px; margin-top: 11px; background: rgba(255,255,255,.5); border-radius: 11px; padding: 7px 10px; flex-wrap: wrap; }
+  .social .txt { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .social input { width: 56px; text-align: center; font-weight: 700; font-size: 15px; font-family: var(--font-display); border: 1px solid rgba(58,46,5,.3); background: #fff; color: var(--yellow-ink); border-radius: 8px; padding: 3px 4px; font-variant-numeric: tabular-nums; }
+  .social .plus { border: 0; background: var(--yellow-ink); color: #fff; font-weight: 700; border-radius: 8px; padding: 6px 12px; font-size: 13px; }
+  .social .note { font-size: 11.5px; opacity: .8; width: 100%; }
 
-  /* ---- Item cards ---- */
-  .grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
-  @media (min-width: 560px) { .grid { grid-template-columns: 1fr 1fr; } }
-  .card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-    padding: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 11px;
-    min-width: 0;
-  }
-  .card.mine { border-color: var(--primary); }
-  .citem { display: flex; align-items: flex-start; gap: 11px; }
-  .emoji { font-size: 26px; line-height: 1; flex: none; }
-  .cname { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
-  .cunit { font-size: 12px; color: var(--muted); }
-  .price-row { display: flex; align-items: baseline; gap: 8px; margin-left: auto; text-align: right; }
-  .price-now { font-family: var(--font-display); font-weight: 700; font-size: 21px; color: var(--primary); }
-  .price-now small { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .price-was { font-size: 12.5px; color: var(--muted); text-decoration: line-through; }
+  /* ---- Category chips ---- */
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 14px 0 2px; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: 13.5px; box-shadow: var(--shadow); white-space: nowrap; }
+  .chip.on { background: var(--green); color: var(--green-ink); border-color: transparent; }
 
-  .ladder { display: flex; gap: 4px; }
-  .rung { flex: 1; height: 5px; border-radius: 3px; background: var(--surface-2); }
-  .rung.on { background: var(--primary); }
-  .rung.best { background: var(--accent); }
+  .sechead { display: flex; align-items: baseline; justify-content: space-between; margin: 18px 0 10px; }
+  .sechead h2 { font-size: 18px; }
+  .sechead .r { font-size: 12.5px; color: var(--muted); }
 
-  .pool { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; }
-  .pool .pooled { color: var(--muted); }
-  .pool .pooled b { color: var(--fg); }
-  .unlock { color: var(--accent); font-weight: 700; }
-  .unlock.max { color: var(--primary); }
+  /* ---- Product grid ---- */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (min-width: 620px) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+  .prod { background: var(--surface); border: 1px solid var(--line); border-radius: 15px; padding: 10px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 8px; min-width: 0; position: relative; }
+  .prod.incart { border-color: var(--green); }
+  .tile { position: relative; border-radius: 12px; background: var(--tilebg, var(--surface-2)); aspect-ratio: 1/1; display: grid; place-items: center; font-size: 42px; }
+  .offtag { position: absolute; top: 6px; left: 6px; background: var(--green); color: var(--green-ink); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 7px; font-family: var(--font-display); }
+  .pname { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; line-height: 1.15; }
+  .pname .en { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .punit { font-size: 12px; color: var(--muted); margin-top: -3px; }
+  .prices { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .pnow { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--save); }
+  .pwas { font-size: 12.5px; color: var(--muted); text-decoration: line-through; }
+  .ladder { display: flex; gap: 3px; }
+  .rung { flex: 1; height: 4px; border-radius: 3px; background: var(--surface-2); }
+  .rung.on { background: var(--green); } .rung.best { background: var(--yellow); }
+  .nextline { font-size: 11.5px; color: var(--accent); font-weight: 700; min-height: 15px; }
+  .nextline.max { color: var(--save); }
 
-  .pledge { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px dashed var(--line); padding-top: 11px; }
-  .stepper { display: flex; align-items: center; gap: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .stepper button { width: 34px; height: 34px; border: 0; background: var(--surface-2); color: var(--fg); font-size: 18px; font-weight: 700; display: grid; place-items: center; }
-  .stepper button:active { background: var(--primary); color: var(--primary-ink); }
-  .stepper .qty { min-width: 46px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .mine-note { font-size: 12px; text-align: right; }
-  .mine-note .held { color: var(--muted); }
-  .mine-note .save { color: var(--primary); font-weight: 700; }
+  .add { margin-top: auto; border: 1.5px solid var(--green); color: var(--green); background: color-mix(in srgb, var(--green) 7%, var(--surface)); border-radius: 11px; padding: 9px; font-weight: 700; font-size: 14px; width: 100%; }
+  .stepper { margin-top: auto; display: flex; align-items: center; justify-content: space-between; background: var(--green); color: var(--green-ink); border-radius: 11px; overflow: hidden; }
+  .stepper button { border: 0; background: transparent; color: var(--green-ink); font-size: 20px; font-weight: 700; width: 40px; height: 40px; }
+  .stepper .q { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+  button:focus-visible, input:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-  /* ---- Sticky order bar ---- */
-  .orderbar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
-    background: var(--surface); border-top: 1px solid var(--line);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -6px 20px rgba(23,33,27,.08);
-  }
-  .orderbar .ob-inner {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding-block: 11px;
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
-    max-width: 760px; margin: 0 auto;
-  }
-  .ob-figures { min-width: 0; }
-  .ob-figures .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .ob-figures .pay { font-family: var(--font-display); font-weight: 700; font-size: 20px; }
-  .ob-figures .pay s { color: var(--muted); font-size: 13px; font-weight: 600; margin-left: 7px; }
-  .ob-figures .sub { font-size: 12px; color: var(--primary); font-weight: 600; }
-  .ob-cta { flex: none; }
+  /* ---- Cart / bill ---- */
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; align-items: center; gap: 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; box-shadow: var(--shadow); }
+  .row .mini { width: 46px; height: 46px; border-radius: 10px; display: grid; place-items: center; font-size: 24px; flex: none; }
+  .row .info { min-width: 0; flex: 1; }
+  .row .info .n { font-family: var(--font-display); font-weight: 700; font-size: 14.5px; }
+  .row .info .s { font-size: 12px; color: var(--muted); }
+  .row .rt { text-align: right; }
+  .row .rt .pn { font-weight: 700; color: var(--save); font-family: var(--font-display); }
+  .ministep { display: flex; align-items: center; background: var(--green); color: var(--green-ink); border-radius: 9px; overflow: hidden; margin-top: 4px; }
+  .ministep button { border: 0; background: transparent; color: var(--green-ink); width: 30px; height: 30px; font-size: 17px; font-weight: 700; }
+  .ministep .q { font-size: 13px; font-weight: 700; min-width: 26px; text-align: center; }
 
-  .pop { animation: pop .45s cubic-bezier(.2,.8,.2,1); }
-  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
-  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  .bill { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 15px; box-shadow: var(--shadow); margin-top: 14px; }
+  .bill h3 { font-size: 16px; margin-bottom: 11px; }
+  .bline { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 5px 0; }
+  .bline.save { color: var(--save); font-weight: 700; }
+  .bline.tot { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 11px; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  .safebox { background: var(--accent-soft); color: var(--accent); border-radius: 11px; padding: 9px 11px; font-size: 12.5px; font-weight: 600; margin-top: 11px; }
 
-  footer { color: var(--muted); font-size: 11.5px; text-align: center; margin: 26px 0 8px; }
+  .bigbtn { width: 100%; border: 0; background: var(--green); color: var(--green-ink); border-radius: 13px; padding: 15px; font-family: var(--font-display); font-weight: 700; font-size: 16px; margin-top: 13px; box-shadow: var(--shadow); }
+  .bigbtn.yellow { background: var(--yellow); color: var(--yellow-ink); }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+  .empty .em { font-size: 52px; }
+  .empty h3 { font-size: 18px; margin: 10px 0 4px; color: var(--fg); }
+
+  /* ---- Orders / wallet ---- */
+  .ocard { background: var(--surface); border: 1px solid var(--line); border-radius: 15px; padding: 14px; box-shadow: var(--shadow); }
+  .ocard .oh { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .ostatus { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+  .ostatus.open { background: var(--accent-soft); color: var(--accent); }
+  .ostatus.ready { background: color-mix(in srgb, var(--save) 16%, var(--surface)); color: var(--save); }
+  .oitems { font-size: 13px; color: var(--muted); margin-top: 7px; }
+  .oft { display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-weight: 700; font-family: var(--font-display); }
+
+  .walletcard { background: linear-gradient(130deg, var(--green), #0f5f3a); color: #fff; border-radius: 18px; padding: 18px; box-shadow: var(--shadow); }
+  .walletcard .l { font-size: 12.5px; opacity: .85; text-transform: uppercase; letter-spacing: .06em; }
+  .walletcard .big { font-family: var(--font-display); font-weight: 700; font-size: 34px; margin-top: 2px; }
+  .walletcard .sub { font-size: 13px; opacity: .9; margin-top: 4px; }
+  .txn { display: flex; justify-content: space-between; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .txn:last-child { border-bottom: 0; }
+  .txn .amt.cr { color: var(--save); font-weight: 700; } .txn .amt.dr { color: var(--danger); font-weight: 700; }
+
+  /* ---- Bottom nav ---- */
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 35; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); box-shadow: 0 -4px 18px rgba(22,33,27,.07); }
+  nav.tabs .inner { display: flex; max-width: 820px; margin: 0 auto; }
+  .tab { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 8px 4px 9px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 600; position: relative; }
+  .tab .i { font-size: 20px; } .tab.on { color: var(--green); }
+  .tab .badge { position: absolute; top: 3px; right: 50%; transform: translateX(16px); background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; min-width: 17px; height: 17px; border-radius: 9px; display: grid; place-items: center; padding: 0 4px; }
+
+  .toast { position: fixed; left: 50%; bottom: 86px; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 11px; font-weight: 600; font-size: 13.5px; box-shadow: var(--shadow); z-index: 50; opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+  .pop { animation: pop .4s cubic-bezier(.2,.8,.2,1); }
+  @keyframes pop { 0%{transform:scale(1)} 45%{transform:scale(1.13)} 100%{transform:scale(1)} }
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+  footer { color: var(--muted); font-size: 11.5px; text-align: center; margin: 24px 0 10px; }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Manrope:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Mukta:wght@400;500;600;700&display=swap">
 
-<header>
-  <div class="wrap head-inner">
-    <div class="brand">
-      <div class="logo">
-        <div class="mark">CR</div>
-        <div>
-          <div class="name">Community Rashan</div>
-          <div class="society">Green Meadows Society · Pune</div>
-        </div>
-      </div>
-      <div class="wallet">
-        <div class="lbl">Wallet</div>
-        <div class="val tnum" id="walletVal">₹2,000</div>
-      </div>
-    </div>
-    <div class="cyclebar">
-      <span>🗓️ This cycle <b>closes Thursday</b></span>
-      <span class="dot"></span>
-      <span class="tnum" id="countdown">2d 06h left</span>
-      <span class="dot"></span>
-      <span>Pickup: <b>Tower B lobby</b></span>
-    </div>
-  </div>
-</header>
-
-<main class="wrap">
-  <div class="controls">
-    <button class="btn primary" id="simBtn">👥 Simulate neighbours ordering</button>
-    <button class="btn" id="resetBtn">↺ Reset</button>
-  </div>
-  <p class="hint">Pledge any quantity. As the whole society pools more, the per-item price drops — and once a wholesaler's total order crosses ₹50,000 / ₹1,00,000, an <b>extra discount</b> unlocks for everyone. You only ever pay the final price; the difference comes back to your wallet.</p>
-
-  <div id="suppliers"></div>
-
-  <footer>Interactive prototype · sample data · not a live store</footer>
-</main>
-
-<div class="orderbar">
-  <div class="ob-inner">
-    <div class="ob-figures">
-      <div class="lbl">Your order · held in escrow <span class="tnum" id="heldVal">₹0</span></div>
-      <div class="pay tnum" id="payVal">₹0 <s id="retailVal"></s></div>
-      <div class="sub" id="saveVal">Add items to start pooling</div>
-    </div>
-    <div class="ob-cta"><button class="btn primary" id="confirmBtn">Confirm pledge</button></div>
-  </div>
-</div>
+<div id="root"></div>
+<nav class="tabs"><div class="inner" id="tabs"></div></nav>
+<div class="toast" id="toast"></div>
 
 <script>
 (function () {
   "use strict";
 
-  // ---- Sample catalogue: one society, one cycle, two verified wholesalers ----
-  // tiers: ascending by minQty; price at minQty 0 is the retail (top) price.
-  var DATA = [
-    {
-      id: "sharma", name: "Sharma Traders", sub: "Grains, dal & oil · Market Yard",
-      valueTiers: [{ min: 50000, pct: 2 }, { min: 100000, pct: 4 }],
-      items: [
-        { id: "sugar", name: "Sugar", unit: "per kg", emoji: "🧂", base: 42,
-          tiers: [{min:0,price:45},{min:20,price:41},{min:30,price:38},{min:50,price:34}] },
-        { id: "atta", name: "Chakki Atta", unit: "per kg", emoji: "🌾", base: 70,
-          tiers: [{min:0,price:42},{min:25,price:38},{min:50,price:35},{min:100,price:32}] },
-        { id: "toor", name: "Toor Dal", unit: "per kg", emoji: "🫘", base: 18,
-          tiers: [{min:0,price:140},{min:10,price:128},{min:25,price:120},{min:50,price:112}] },
-        { id: "oil", name: "Sunflower Oil", unit: "per litre", emoji: "🛢️", base: 12,
-          tiers: [{min:0,price:150},{min:10,price:140},{min:20,price:132},{min:40,price:126}] }
-      ]
-    },
-    {
-      id: "verma", name: "Verma Agro", sub: "Rice, tea & spices · Hadapsar",
-      valueTiers: [{ min: 40000, pct: 2 }, { min: 80000, pct: 3.5 }],
-      items: [
-        { id: "rice", name: "Basmati Rice", unit: "per kg", emoji: "🍚", base: 34,
-          tiers: [{min:0,price:95},{min:20,price:86},{min:50,price:80},{min:100,price:74}] },
-        { id: "tea", name: "Assam Tea", unit: "per kg", emoji: "🍵", base: 6,
-          tiers: [{min:0,price:320},{min:10,price:296},{min:25,price:280},{min:50,price:262}] }
-      ]
-    }
+  var WHOLESALERS = {
+    sharma: { name: "Sharma Traders", valueTiers: [{min:50000,pct:2},{min:100000,pct:4}] },
+    verma:  { name: "Verma Agro",     valueTiers: [{min:40000,pct:2},{min:80000,pct:3.5}] }
+  };
+
+  // cat: filter group · base: others already pooled · fam: kg added per extra family · step: add step
+  var ITEMS = [
+    {id:"sugar", hi:"चीनी", en:"Sugar", unit:"प्रति किलो", emoji:"🧂", bg:"#fbe7c6", w:"sharma", cat:"chai", base:40, fam:0.8, step:5, tiers:[{min:0,price:45},{min:20,price:41},{min:30,price:38},{min:50,price:34}]},
+    {id:"atta",  hi:"चक्की आटा", en:"Atta", unit:"प्रति किलो", emoji:"🌾", bg:"#f3e4c0", w:"sharma", cat:"atta", base:68, fam:1.2, step:5, tiers:[{min:0,price:42},{min:25,price:38},{min:50,price:35},{min:100,price:32}]},
+    {id:"toor",  hi:"तूर दाल", en:"Toor Dal", unit:"प्रति किलो", emoji:"🫘", bg:"#f0d9a8", w:"sharma", cat:"staple", base:16, fam:0.5, step:1, tiers:[{min:0,price:140},{min:10,price:128},{min:25,price:120},{min:50,price:112}]},
+    {id:"oil",   hi:"सूरजमुखी तेल", en:"Oil", unit:"प्रति लीटर", emoji:"🛢️", bg:"#fbeeb6", w:"sharma", cat:"oil", base:12, fam:0.4, step:1, tiers:[{min:0,price:150},{min:10,price:140},{min:20,price:132},{min:40,price:126}]},
+    {id:"ghee",  hi:"देसी घी", en:"Ghee", unit:"प्रति किलो", emoji:"🧈", bg:"#fbe3a0", w:"sharma", cat:"oil", base:8, fam:0.3, step:1, tiers:[{min:0,price:560},{min:5,price:540},{min:10,price:520},{min:20,price:500}]},
+    {id:"salt",  hi:"नमक", en:"Salt", unit:"प्रति किलो", emoji:"🧊", bg:"#e7eef2", w:"sharma", cat:"staple", base:30, fam:0.9, step:1, tiers:[{min:0,price:28},{min:20,price:25},{min:40,price:23},{min:80,price:21}]},
+    {id:"rice",  hi:"बासमती चावल", en:"Rice", unit:"प्रति किलो", emoji:"🍚", bg:"#eef0e6", w:"verma", cat:"staple", base:28, fam:0.7, step:5, tiers:[{min:0,price:95},{min:20,price:86},{min:50,price:80},{min:100,price:74}]},
+    {id:"tea",   hi:"असम चाय", en:"Tea", unit:"प्रति किलो", emoji:"🍵", bg:"#e3d6c3", w:"verma", cat:"chai", base:6, fam:0.3, step:1, tiers:[{min:0,price:320},{min:10,price:296},{min:25,price:280},{min:50,price:262}]},
+    {id:"poha",  hi:"पोहा", en:"Poha", unit:"प्रति किलो", emoji:"🥣", bg:"#f1ead6", w:"verma", cat:"staple", base:14, fam:0.5, step:1, tiers:[{min:0,price:48},{min:10,price:44},{min:25,price:40},{min:50,price:37}]},
+    {id:"besan", hi:"बेसन", en:"Besan", unit:"प्रति किलो", emoji:"🟡", bg:"#f8e9ab", w:"verma", cat:"atta", base:10, fam:0.4, step:1, tiers:[{min:0,price:95},{min:8,price:88},{min:20,price:82},{min:40,price:78}]}
   ];
 
-  var WALLET_START = 2000;
-  var state = {}; // itemId -> { pooled (others), mine }
+  var CATS = [
+    {id:"all", hi:"सब", en:"All"},
+    {id:"staple", hi:"दाल-चावल", en:"Staples"},
+    {id:"atta", hi:"आटा-बेसन", en:"Flour"},
+    {id:"oil", hi:"तेल-घी", en:"Oil & Ghee"},
+    {id:"chai", hi:"चाय-चीनी", en:"Tea & Sugar"}
+  ];
 
-  function resetState() {
-    DATA.forEach(function (s) {
-      s.items.forEach(function (it) { state[it.id] = { pooled: it.base, mine: 0 }; });
+  var FAM_START = 42;
+  var state = {
+    view: "home", cat: "all", query: "",
+    families: FAM_START,
+    cart: {},             // id -> qty
+    wallet: { balance: 2000, held: 0, txns: [{ t: "टॉप-अप / Added money", a: 2000, cr: true }] },
+    orders: []
+  };
+
+  // ---- pricing ----
+  function item(id){ for (var i=0;i<ITEMS.length;i++) if (ITEMS[i].id===id) return ITEMS[i]; }
+  function othersPooled(it){ return Math.max(0, Math.round(it.base + (state.families - FAM_START) * it.fam)); }
+  function total(it){ return othersPooled(it) + (state.cart[it.id] || 0); }
+  function tierFor(it, q){ var t=it.tiers[0]; for (var i=0;i<it.tiers.length;i++) if (q>=it.tiers[i].min) t=it.tiers[i]; return t; }
+  function nextTier(it, q){ for (var i=0;i<it.tiers.length;i++) if (it.tiers[i].min>q) return it.tiers[i]; return null; }
+  function retail(it){ return it.tiers[0].price; }
+  function grossValue(wid){ return ITEMS.filter(function(it){return it.w===wid;}).reduce(function(s,it){var q=total(it);return s+tierFor(it,q).price*q;},0); }
+  function valuePct(wid){ var g=grossValue(wid), p=0; WHOLESALERS[wid].valueTiers.forEach(function(v){ if (g>=v.min) p=v.pct; }); return p; }
+  function unitShort(it){ return it.unit.indexOf("लीटर")>-1 ? "L" : "किलो"; }
+
+  var inr = function(n){ return "₹"+Math.round(n).toLocaleString("en-IN"); };
+
+  function cartCount(){ var n=0; for (var k in state.cart) if (state.cart[k]>0) n++; return n; }
+  function bill(){
+    var retailT=0, finalT=0;
+    for (var id in state.cart){ var q=state.cart[id]; if (!q) continue; var it=item(id);
+      var cur=tierFor(it, total(it)).price, vp=valuePct(it.w);
+      retailT += retail(it)*q; finalT += cur*(1-vp/100)*q;
+    }
+    return { retail: retailT, final: finalT, save: retailT-finalT };
+  }
+
+  // ---- generic helpers ----
+  var root = document.getElementById("root");
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  var toastT;
+  function toast(msg){ var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){t.classList.remove("show");},1800); }
+
+  // ---- render router ----
+  function render(){
+    if (state.view==="home") renderHome();
+    else if (state.view==="cart") renderCart();
+    else if (state.view==="orders") renderOrders();
+    else if (state.view==="wallet") renderWallet();
+    renderTabs();
+    window.scrollTo(0,0);
+  }
+
+  function renderTabs(){
+    var tabs=[["home","🏠","घर"],["cart","🛒","टोकरी"],["orders","📦","Orders"],["wallet","👛","बटुआ"]];
+    document.getElementById("tabs").innerHTML = tabs.map(function(t){
+      var badge = (t[0]==="cart" && cartCount()>0) ? '<span class="badge">'+cartCount()+'</span>' : '';
+      return '<button class="tab'+(state.view===t[0]?' on':'')+'" data-tab="'+t[0]+'"><span class="i">'+t[1]+'</span>'+t[2]+badge+'</button>';
+    }).join("");
+  }
+
+  // ---------- HOME ----------
+  function renderHome(){
+    root.innerHTML =
+      '<header><div class="wrap topline">'+
+        '<div class="loc"><div class="where">'+
+          '<div class="t1">📍 Green Meadows Society <span style="font-size:13px">▾</span></div>'+
+          '<div class="t2">Tower B lobby पर pickup · Pune</div></div>'+
+          '<div class="wpill"><div class="l">बटुआ</div><div class="v tnum">'+inr(state.wallet.balance-state.wallet.held)+'</div></div>'+
+        '</div>'+
+        '<div class="search"><span class="ic">🔍</span><input id="q" placeholder="चीनी, आटा, दाल… ढूँढें" value="'+esc(state.query)+'"></div>'+
+      '</div></header>'+
+      '<main class="wrap">'+
+        '<div class="banner">'+
+          '<div class="b1">🛒 इस हफ़्ते का group order <span style="font-weight:600;font-size:13px">· गुरुवार को बंद</span></div>'+
+          '<div class="b2">जितनी families मिलकर लेंगी, दाम उतना कम — पैसा safe, बचत wallet में वापस।</div>'+
+          '<div class="social">'+
+            '<span class="txt">👨‍👩‍👧 <input id="fam" type="number" min="0" class="tnum" value="'+state.families+'"> families ने order किया</span>'+
+            '<button class="plus" id="famPlus">+1 family</button>'+
+            '<span class="note">नंबर बदलें या +1 दबाएँ — देखिए दाम कैसे गिरते हैं।</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="cats" id="cats">'+CATS.map(function(c){
+          return '<button class="chip'+(state.cat===c.id?' on':'')+'" data-cat="'+c.id+'">'+c.hi+' <span class="hi" style="font-size:11px">'+c.en+'</span></button>';
+        }).join("")+'</div>'+
+        '<div class="sechead"><h2>🔥 आज के group deals</h2><span class="r">सब दाम आज के pool पर</span></div>'+
+        '<div class="grid" id="grid"></div>'+
+        '<footer>Working prototype · demo data · असली store नहीं</footer>'+
+      '</main>';
+
+    renderGrid();
+    document.getElementById("q").addEventListener("input", function(e){ state.query=e.target.value; renderGrid(); });
+    var fam=document.getElementById("fam");
+    fam.addEventListener("change", function(e){ var v=parseInt(e.target.value,10); state.families=isNaN(v)||v<0?0:v; e.target.value=state.families; renderGrid(); updateWalletPill(); });
+    document.getElementById("famPlus").addEventListener("click", function(){ state.families+=1; fam.value=state.families; renderGrid(); updateWalletPill(); toast("एक और family जुड़ी 🎉 दाम और कम!"); });
+  }
+
+  function updateWalletPill(){ var el=document.querySelector(".wpill .v"); if (el) el.textContent=inr(state.wallet.balance-state.wallet.held); }
+
+  function visibleItems(){
+    var q=state.query.trim().toLowerCase();
+    return ITEMS.filter(function(it){
+      if (state.cat!=="all" && it.cat!==state.cat) return false;
+      if (q && (it.hi+" "+it.en).toLowerCase().indexOf(q)<0) return false;
+      return true;
     });
   }
 
-  // ---- Pricing helpers ----
-  function tierFor(item, qty) {
-    var t = item.tiers[0];
-    for (var i = 0; i < item.tiers.length; i++) if (qty >= item.tiers[i].min) t = item.tiers[i];
-    return t;
-  }
-  function nextTier(item, qty) {
-    for (var i = 0; i < item.tiers.length; i++) if (item.tiers[i].min > qty) return item.tiers[i];
-    return null;
-  }
-  function retailPrice(item) { return item.tiers[0].price; }
-  function total(item) { return state[item.id].pooled + state[item.id].mine; }
-
-  // gross order value for a wholesaler = Σ currentTierPrice × pooledTotal
-  function grossValue(sup) {
-    return sup.items.reduce(function (sum, it) {
-      var q = total(it); return sum + tierFor(it, q).price * q;
-    }, 0);
-  }
-  function valueDiscount(sup) {
-    var g = grossValue(sup), pct = 0;
-    sup.valueTiers.forEach(function (vt) { if (g >= vt.min) pct = vt.pct; });
-    return pct;
+  function renderGrid(){
+    var grid=document.getElementById("grid"); if (!grid) return;
+    var items=visibleItems();
+    if (!items.length){ grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="em">🔍</div><h3>कुछ नहीं मिला</h3><div>दूसरा नाम आज़माएँ</div></div>'; return; }
+    grid.innerHTML = items.map(cardHTML).join("");
   }
 
-  var inr = function (n) { return "₹" + Math.round(n).toLocaleString("en-IN"); };
-  var inr1 = function (n) { return "₹" + (Math.round(n * 10) / 10).toLocaleString("en-IN"); };
-
-  // ---- Build DOM once ----
-  var host = document.getElementById("suppliers");
-  function build() {
-    host.innerHTML = "";
-    DATA.forEach(function (sup) {
-      var wrap = document.createElement("section");
-      wrap.className = "supplier";
-      wrap.innerHTML =
-        '<div class="supplier-head">' +
-          '<div><h2>' + sup.name + ' <span class="verified">✓ verified</span></h2>' +
-          '<div class="sub">' + sup.sub + '</div></div>' +
-        '</div>' +
-        '<div class="valuemeter" id="vm-' + sup.id + '"></div>' +
-        '<div class="grid" id="grid-' + sup.id + '"></div>';
-      host.appendChild(wrap);
-      var grid = wrap.querySelector("#grid-" + sup.id);
-      sup.items.forEach(function (it) {
-        var card = document.createElement("div");
-        card.className = "card";
-        card.id = "card-" + it.id;
-        grid.appendChild(card);
-      });
-    });
+  function cardHTML(it){
+    var q=total(it), cur=tierFor(it,q), nt=nextTier(it,q), r=retail(it), inCart=state.cart[it.id]>0;
+    var off = r>cur.price ? Math.round((1-cur.price/r)*100) : 0;
+    var rungs = it.tiers.map(function(t,i){ var on=q>=t.min, best=i===it.tiers.length-1; return '<div class="rung'+(on?(best?' best':' on'):'')+'"></div>'; }).join("");
+    var nextline = nt ? '+'+(nt.min-q)+' '+unitShort(it)+' और → '+inr(nt.price) : '★ सबसे कम दाम!';
+    var ctrl = inCart
+      ? '<div class="stepper"><button data-dec="'+it.id+'" aria-label="कम">−</button><span class="q tnum">'+state.cart[it.id]+' '+unitShort(it)+'</span><button data-inc="'+it.id+'" aria-label="ज़्यादा">+</button></div>'
+      : '<button class="add" data-add="'+it.id+'">＋ ADD</button>';
+    return '<div class="prod'+(inCart?' incart':'')+'">'+
+      '<div class="tile" style="--tilebg:'+it.bg+'">'+(off?'<span class="offtag">'+off+'% OFF</span>':'')+it.emoji+'</div>'+
+      '<div class="pname">'+it.hi+' <span class="en">'+it.en+'</span></div>'+
+      '<div class="punit">'+it.unit+'</div>'+
+      '<div class="ladder">'+rungs+'</div>'+
+      '<div class="prices"><span class="pnow tnum">'+inr(cur.price)+'</span>'+(off?'<span class="pwas tnum">'+inr(r)+'</span>':'')+'</div>'+
+      '<div class="nextline'+(nt?'':' max')+'">'+nextline+'</div>'+
+      ctrl+
+    '</div>';
   }
 
-  function renderValueMeter(sup) {
-    var el = document.getElementById("vm-" + sup.id);
-    var g = grossValue(sup);
-    var pct = valueDiscount(sup);
-    var tiers = sup.valueTiers;
-    var cap = tiers[tiers.length - 1].min;
-    var fill = Math.min(100, (g / cap) * 100);
-    var next = null;
-    for (var i = 0; i < tiers.length; i++) if (g < tiers[i].min) { next = tiers[i]; break; }
-
-    var badge = pct > 0
-      ? '<span class="vm-badge">▼ extra ' + pct + '% off everyone</span>'
-      : '<span class="vm-badge off">no bulk discount yet</span>';
-
-    var marks = tiers.map(function (vt) {
-      var hit = g >= vt.min;
-      return '<span class="' + (hit ? "hit" : "") + '">' + (hit ? "✓ " : "") + inr(vt.min) + " → " + vt.pct + "%</span>";
+  // ---------- CART ----------
+  function renderCart(){
+    var ids=Object.keys(state.cart).filter(function(k){return state.cart[k]>0;});
+    if (!ids.length){
+      root.innerHTML = headerSimple("टोकरी / Cart")+'<main class="wrap"><div class="empty"><div class="em">🛒</div><h3>टोकरी खाली है</h3><div>Group deals से सामान जोड़ें और मिलकर बचाएँ।</div><button class="bigbtn yellow" data-tab="home" style="max-width:260px;margin:18px auto 0">सामान देखें</button></div></main>';
+      return;
+    }
+    var b=bill();
+    var rows = ids.map(function(id){ var it=item(id), q=state.cart[id], cur=tierFor(it,total(it)).price;
+      return '<div class="row"><div class="mini" style="background:'+it.bg+'">'+it.emoji+'</div>'+
+        '<div class="info"><div class="n">'+it.hi+' <span class="hi" style="font-weight:600;font-size:12px">'+it.en+'</span></div>'+
+        '<div class="s">'+inr(cur)+' × '+q+' '+unitShort(it)+'</div>'+
+        '<div class="ministep"><button data-dec="'+id+'">−</button><span class="q tnum">'+q+'</span><button data-inc="'+id+'">+</button></div></div>'+
+        '<div class="rt"><div class="pn tnum">'+inr(cur*q)+'</div></div></div>';
     }).join("");
 
-    var lead = next
-      ? "Add " + inr(next.min - g) + " more to this wholesaler to unlock " + next.pct + "% off"
-      : "Top bulk discount unlocked 🎉";
+    // layer-2 note: any wholesaler discount active?
+    var vnote="";
+    Object.keys(WHOLESALERS).forEach(function(wid){ var p=valuePct(wid); if (p>0) vnote += (vnote?" · ":"")+WHOLESALERS[wid].name+": extra "+p+"% off"; });
 
-    el.innerHTML =
-      '<div class="vm-top"><div><div class="lbl" style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Society’s order to ' + sup.name + '</div>' +
-        '<div class="amt tnum">' + inr(g) + '</div></div>' + badge + '</div>' +
-      '<div class="track"><span style="width:' + fill + '%"></span></div>' +
-      '<div class="vm-marks">' + marks + '</div>' +
-      '<div class="hint" style="margin-top:8px">' + lead + '</div>';
+    root.innerHTML = headerSimple("टोकरी / Cart")+'<main class="wrap">'+
+      '<div class="list">'+rows+'</div>'+
+      '<div class="bill"><h3>🧾 हिसाब / Bill</h3>'+
+        '<div class="bline"><span>Retail दाम (अकेले लेते तो)</span><span class="tnum">'+inr(b.retail)+'</span></div>'+
+        '<div class="bline"><span>Group दाम</span><span class="tnum">'+inr(b.retail-(b.retail-b.final))+'</span></div>'+
+        (vnote?'<div class="bline save"><span>Bulk छूट 🎉 '+vnote+'</span><span></span></div>':'')+
+        '<div class="bline save"><span>कुल बचत / You save</span><span class="tnum">− '+inr(b.save)+'</span></div>'+
+        '<div class="bline tot"><span>आप देंगे</span><span class="tnum">'+inr(b.final)+'</span></div>'+
+        '<div class="safebox">🔒 अभी '+inr(b.retail)+' आपके बटुए में रोका जाएगा। गुरुवार को final दाम कटेगा, बाकी '+inr(b.save)+' वापस बटुए में।</div>'+
+        '<button class="bigbtn" id="place">Order pakka करें · '+inr(b.retail)+' safe रखें</button>'+
+      '</div></main>';
+    document.getElementById("place").addEventListener("click", placeOrder);
   }
 
-  function renderCard(sup, it) {
-    var card = document.getElementById("card-" + it.id);
-    var q = total(it);
-    var st = state[it.id];
-    var cur = tierFor(it, q);
-    var nt = nextTier(it, q);
-    var retail = retailPrice(it);
-    var vpct = valueDiscount(sup);
+  function placeOrder(){
+    var b=bill(), ids=Object.keys(state.cart).filter(function(k){return state.cart[k]>0;});
+    var oitems = ids.map(function(id){ var it=item(id); return { emoji:it.emoji, name:it.hi, qty:state.cart[id], unit:unitShort(it) }; });
+    state.wallet.held += b.retail;
+    state.wallet.txns.unshift({ t:"Order hold · गुरुवार cycle", a:b.retail, cr:false });
+    state.orders.unshift({ id:"CR"+String(1000+state.orders.length*7+3), items:oitems, retail:b.retail, est:b.final, save:b.save, status:"open" });
+    state.cart={};
+    state.families += 1; // you joined
+    state.view="orders";
+    render();
+    toast("Order हो गया! पैसा safe 🔒");
+  }
 
-    // ladder rungs
-    var rungs = it.tiers.map(function (t, i) {
-      var on = q >= t.min;
-      var best = i === it.tiers.length - 1;
-      return '<div class="rung ' + (on ? (best ? "best" : "on") : "") + '"></div>';
-    }).join("");
-
-    var unlock = nt
-      ? '<span class="unlock">+' + (nt.min - q) + ' unlocks ' + inr(nt.price) + '</span>'
-      : '<span class="unlock max">★ best price reached</span>';
-
-    // my economics
-    var myFinalUnit = cur.price * (1 - vpct / 100);
-    var held = retail * st.mine;
-    var finalCost = myFinalUnit * st.mine;
-    var refund = held - finalCost;
-
-    card.className = "card" + (st.mine > 0 ? " mine" : "");
-    card.innerHTML =
-      '<div class="citem">' +
-        '<span class="emoji">' + it.emoji + '</span>' +
-        '<div><div class="cname">' + it.name + '</div><div class="cunit">' + it.unit + '</div></div>' +
-        '<div class="price-row">' +
-          (cur.price < retail ? '<span class="price-was tnum">' + inr(retail) + '</span>' : '') +
-          '<span class="price-now tnum">' + inr(cur.price) + '</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="ladder">' + rungs + '</div>' +
-      '<div class="pool"><span class="pooled"><b class="tnum">' + q + '</b> ' + unitWord(it) + ' pooled</span>' + unlock + '</div>' +
-      '<div class="pledge">' +
-        '<div class="stepper" role="group" aria-label="Pledge quantity for ' + it.name + '">' +
-          '<button type="button" data-dec="' + it.id + '" aria-label="less">−</button>' +
-          '<span class="qty tnum" id="qty-' + it.id + '">' + st.mine + '</span>' +
-          '<button type="button" data-inc="' + it.id + '" aria-label="more">+</button>' +
-        '</div>' +
-        '<div class="mine-note">' +
-          (st.mine > 0
-            ? '<div class="held tnum">held ' + inr(held) + '</div><div class="save tnum">pay ' + inr(finalCost) + ' · save ' + inr(refund) + '</div>'
-            : '<div class="held">add your quantity</div>') +
-        '</div>' +
+  // ---------- ORDERS ----------
+  function renderOrders(){
+    if (!state.orders.length){
+      root.innerHTML = headerSimple("Orders")+'<main class="wrap"><div class="empty"><div class="em">📦</div><h3>अभी कोई order नहीं</h3><div>इस हफ़्ते के group deal में शामिल हों।</div><button class="bigbtn yellow" data-tab="home" style="max-width:260px;margin:18px auto 0">सामान देखें</button></div></main>';
+      return;
+    }
+    var cards = state.orders.map(function(o, idx){
+      var ready = o.status==="ready";
+      return '<div class="ocard" style="margin-bottom:12px"><div class="oh">'+
+        '<div><div style="font-family:var(--font-display);font-weight:700">Order #'+o.id+'</div>'+
+        '<div class="oitems">'+o.items.map(function(i){return i.emoji+" "+i.name+" ×"+i.qty+i.unit;}).join(" · ")+'</div></div>'+
+        '<span class="ostatus '+(ready?'ready':'open')+'">'+(ready?'✓ Tower B पर तैयार':'गुरुवार को lock')+'</span></div>'+
+        '<div class="oft"><span>बचत '+inr(o.save)+'</span><span>~'+inr(o.est)+'</span></div>'+
+        (ready?'':'<button class="bigbtn yellow" data-ready="'+idx+'" style="margin-top:11px">Demo: cycle बंद करें (माल आ गया)</button>')+
       '</div>';
+    }).join("");
+    root.innerHTML = headerSimple("Orders")+'<main class="wrap">'+cards+'<footer>WhatsApp पर भी reminder आएगा 💬</footer></main>';
   }
 
-  function unitWord(it) { return it.unit.indexOf("litre") > -1 ? "L" : "kg"; }
-
-  function renderAll(pulse) {
-    DATA.forEach(function (sup) {
-      renderValueMeter(sup);
-      sup.items.forEach(function (it) { renderCard(sup, it); });
-    });
-    renderOrderBar(pulse);
+  // ---------- WALLET ----------
+  function renderWallet(){
+    var avail=state.wallet.balance-state.wallet.held;
+    root.innerHTML = headerSimple("बटुआ / Wallet")+'<main class="wrap">'+
+      '<div class="walletcard"><div class="l">इस्तेमाल के लिए उपलब्ध</div><div class="big tnum">'+inr(avail)+'</div>'+
+        '<div class="sub">कुल '+inr(state.wallet.balance)+' · '+inr(state.wallet.held)+' order में रुका हुआ</div></div>'+
+      '<div class="bill"><h3>लेन-देन / Transactions</h3>'+
+        state.wallet.txns.map(function(t){ return '<div class="txn"><span>'+t.t+'</span><span class="amt '+(t.cr?'cr':'dr')+' tnum">'+(t.cr?'+':'−')+inr(t.a)+'</span></div>'; }).join("")+
+      '</div>'+
+      '<footer>रुका हुआ पैसा गुरुवार को final दाम पर कटेगा, बाकी वापस।</footer></main>';
   }
 
-  function renderOrderBar(pulse) {
-    var held = 0, finalCost = 0;
-    DATA.forEach(function (sup) {
-      var vpct = valueDiscount(sup);
-      sup.items.forEach(function (it) {
-        var st = state[it.id];
-        if (st.mine <= 0) return;
-        var cur = tierFor(it, total(it));
-        held += retailPrice(it) * st.mine;
-        finalCost += cur.price * (1 - vpct / 100) * st.mine;
-      });
-    });
-    var refund = held - finalCost;
-    document.getElementById("heldVal").textContent = inr(held);
-    document.getElementById("walletVal").textContent = inr(WALLET_START - held);
-    var payEl = document.getElementById("payVal");
-    payEl.firstChild.textContent = inr1(finalCost) + " ";
-    document.getElementById("retailVal").textContent = held > 0 ? inr(held) : "";
-    var sub = document.getElementById("saveVal");
-    if (held > 0) {
-      var pctSave = Math.round((refund / held) * 100);
-      sub.textContent = "You save " + inr(refund) + " (" + pctSave + "%) vs buying alone · refunded to wallet";
-    } else {
-      sub.textContent = "Add items to start pooling";
-    }
-    if (pulse) { payEl.classList.remove("pop"); void payEl.offsetWidth; payEl.classList.add("pop"); }
+  function headerSimple(title){
+    return '<header><div class="wrap topline"><div class="loc"><div class="where">'+
+      '<div class="t1">'+title+'</div><div class="t2">Green Meadows Society · Pune</div></div>'+
+      '<div class="wpill"><div class="l">बटुआ</div><div class="v tnum">'+inr(state.wallet.balance-state.wallet.held)+'</div></div>'+
+      '</div></div></header>';
   }
 
-  // ---- Interaction ----
-  function findItem(id) {
-    for (var i = 0; i < DATA.length; i++)
-      for (var j = 0; j < DATA[i].items.length; j++)
-        if (DATA[i].items[j].id === id) return DATA[i].items[j];
-    return null;
-  }
-  document.addEventListener("click", function (e) {
-    var inc = e.target.getAttribute && e.target.getAttribute("data-inc");
-    var dec = e.target.getAttribute && e.target.getAttribute("data-dec");
-    if (inc) { state[inc].mine += stepFor(inc); renderAll(true); }
-    else if (dec) { state[dec].mine = Math.max(0, state[dec].mine - stepFor(dec)); renderAll(true); }
-  });
-  function stepFor(id) { return (id === "tea" || id === "toor") ? 1 : 5; } // dal/tea bought by the kilo, staples in 5s
-
-  document.getElementById("simBtn").addEventListener("click", function () {
-    // a handful of neighbours each pledge a bit of something
-    var n = 3 + Math.floor(Math.random() * 3);
-    for (var k = 0; k < n; k++) {
-      var sup = DATA[Math.floor(Math.random() * DATA.length)];
-      var it = sup.items[Math.floor(Math.random() * sup.items.length)];
-      state[it.id].pooled += stepFor(it.id) * (1 + Math.floor(Math.random() * 4));
-    }
-    renderAll(true);
-  });
-  document.getElementById("resetBtn").addEventListener("click", function () { resetState(); renderAll(false); });
-  document.getElementById("confirmBtn").addEventListener("click", function () {
-    var btn = this, old = btn.textContent;
-    btn.textContent = "✓ Pledged — held in escrow";
-    setTimeout(function () { btn.textContent = old; }, 1600);
+  // ---- events ----
+  document.addEventListener("click", function(e){
+    var t=e.target.closest ? e.target.closest("[data-tab],[data-cat],[data-add],[data-inc],[data-dec],[data-ready]") : null;
+    if (!t) return;
+    if (t.hasAttribute("data-tab")){ state.view=t.getAttribute("data-tab"); render(); }
+    else if (t.hasAttribute("data-cat")){ state.cat=t.getAttribute("data-cat"); document.querySelectorAll("[data-cat]").forEach(function(c){c.classList.toggle("on",c===t);}); renderGrid(); }
+    else if (t.hasAttribute("data-add")){ var it=item(t.getAttribute("data-add")); state.cart[it.id]=(state.cart[it.id]||0)+it.step; afterCart(); toast(it.hi+" जोड़ा गया 🛒"); }
+    else if (t.hasAttribute("data-inc")){ var it2=item(t.getAttribute("data-inc")); state.cart[it2.id]=(state.cart[it2.id]||0)+it2.step; afterCart(); }
+    else if (t.hasAttribute("data-dec")){ var it3=item(t.getAttribute("data-dec")); state.cart[it3.id]=Math.max(0,(state.cart[it3.id]||0)-it3.step); if(!state.cart[it3.id]) delete state.cart[it3.id]; afterCart(); }
+    else if (t.hasAttribute("data-ready")){ state.orders[+t.getAttribute("data-ready")].status="ready"; renderOrders(); toast("माल Tower B पर आ गया — collect करें!"); }
   });
 
-  resetState();
-  build();
-  renderAll(false);
+  function afterCart(){
+    if (state.view==="home") renderGrid();
+    else if (state.view==="cart") renderCart();
+    updateWalletPill(); renderTabs();
+    var b=document.querySelector(".tab .badge"); if (b) b.classList.add("pop"), setTimeout(function(){b&&b.classList.remove("pop");},400);
+  }
+
+  render();
 })();
 </script>
