@@ -44,7 +44,7 @@ ThemeData buildTheme(Brightness brightness) {
       foregroundColor: Colors.white,
       elevation: 0,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 0,
       color: scheme.surface,
       shape: RoundedRectangleBorder(

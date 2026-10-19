@@ -14,13 +14,14 @@ dependencies:
   google_fonts: ^6.2.1    # Baloo 2 + Mukta (Devanagari + Latin)
   intl: ^0.19.0           # ₹ number formatting (en_IN)
 
-  # --- Firebase (Phase 1 → 2) -----------------------------------------------
-  # The app runs on in-memory sample data out of the box so you can see it
-  # immediately. To connect the real backend, run `flutterfire configure`
-  # (see app/README.md) and then uncomment these:
-  # firebase_core: ^3.6.0
-  # cloud_firestore: ^5.4.4
-  # firebase_auth: ^5.3.1
+  # --- Firebase: Google sign-in + Cloud Firestore ---------------------------
+  # The app still runs on sample data until you run `flutterfire configure`
+  # (see docs/FIREBASE_SETUP.md); at runtime it falls back to offline/mock mode
+  # whenever Firebase is not configured.
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:

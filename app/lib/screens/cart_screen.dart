@@ -14,7 +14,6 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = context.watch<AppState>();
-    final scheme = Theme.of(context).colorScheme;
     final entries = app.cart.entries.where((e) => e.value > 0).toList();
 
     return SafeArea(

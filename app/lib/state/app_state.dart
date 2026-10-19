@@ -23,7 +23,7 @@ class AppState extends ChangeNotifier {
 
   List<Deal> get deals => repo.deals;
   List<Wholesaler> get wholesalers => repo.wholesalers;
-  List<Category> get categories => repo.categories;
+  List<ShopCategory> get categories => repo.categories;
 
   Wholesaler wholesaler(String id) =>
       repo.wholesalers.firstWhere((w) => w.id == id);

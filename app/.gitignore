@@ -11,8 +11,10 @@ pubspec.lock
 .vscode/
 *.iml
 
-# Firebase config (generated locally by `flutterfire configure`)
-lib/firebase_options.dart
+# Firebase secrets (platform files — NOT the Dart options, which are safe to commit)
 google-services.json
 GoogleService-Info.plist
 .env
+
+# local preview screenshots
+preview_*.png

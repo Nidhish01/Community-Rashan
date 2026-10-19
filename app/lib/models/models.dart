@@ -116,9 +116,9 @@ class PooledOrder {
 }
 
 @immutable
-class Category {
+class ShopCategory {
   final String id;
   final String hi;
   final String en;
-  const Category(this.id, this.hi, this.en);
+  const ShopCategory(this.id, this.hi, this.en);
 }

@@ -5,7 +5,7 @@ import '../models/models.dart';
 abstract class Repository {
   List<Wholesaler> get wholesalers;
   List<Deal> get deals;
-  List<Category> get categories;
+  List<ShopCategory> get categories;
   String get societyName;
   String get pickupPoint;
 }
@@ -18,12 +18,12 @@ class MockRepository implements Repository {
   String get pickupPoint => 'Tower B lobby';
 
   @override
-  final List<Category> categories = const [
-    Category('all', 'सब', 'All'),
-    Category('staple', 'दाल-चावल', 'Staples'),
-    Category('atta', 'आटा-बेसन', 'Flour'),
-    Category('oil', 'तेल-घी', 'Oil & Ghee'),
-    Category('chai', 'चाय-चीनी', 'Tea & Sugar'),
+  final List<ShopCategory> categories = const [
+    ShopCategory('all', 'सब', 'All'),
+    ShopCategory('staple', 'दाल-चावल', 'Staples'),
+    ShopCategory('atta', 'आटा-बेसन', 'Flour'),
+    ShopCategory('oil', 'तेल-घी', 'Oil & Ghee'),
+    ShopCategory('chai', 'चाय-चीनी', 'Tea & Sugar'),
   ];
 
   @override
