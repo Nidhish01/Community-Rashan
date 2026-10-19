@@ -80,6 +80,30 @@ into one order per wholesaler, and a **single delivery** lands at the society's
 pickup point. Predictable days keep life simple for residents, wholesalers, and
 the coordinator alike.
 
+### Two ways the price drops (two pooling layers)
+
+Discounts come from **two independent pools that stack**:
+
+| Layer | What pools | Who it rewards |
+|---|---|---|
+| **1 · Item pool (quantity)** | More of the **same item** → the item's sliding tier price falls | Buyers of that item |
+| **2 · Value pool (money)** | **All the different items** going to one wholesaler this cycle, summed into a total order value | Everyone — a bigger order earns the wholesaler's extra volume discount |
+
+A wholesaler would rather sell ₹1 lakh of mixed goods than ₹10k of one item, so
+each wholesaler sets **order-value discount tiers** (e.g. total ≥ ₹50,000 →
+extra 2% off; ≥ ₹1,00,000 → extra 4% off). The value pool is measured
+**per wholesaler per cycle**. At cutoff:
+
+1. Each item locks at its own quantity tier (Layer 1).
+2. The wholesaler's items sum to a **total order value**; whichever value tier it
+   reaches sets an **extra % discount on the whole order** (Layer 2).
+3. That extra discount is distributed **pro-rata** across every buyer's line
+   items and **refunded to their wallets**, alongside the Layer-1 refunds.
+
+Net effect: residents can get cheaper prices just because *other* residents
+ordered *different* things from the same wholesaler — and the wholesaler is
+happy to give it, because the combined order is far larger.
+
 ### Deal lifecycle (state machine)
 
 ```
@@ -165,7 +189,8 @@ User(id, phone, name, role[customer|wholesaler|coordinator|admin], societyId)
 
 Society(id, name, address, pincode, pickupPointAddress, coordinatorUserId)
 
-Wholesaler(id, userId, businessName, verified)
+Wholesaler(id, userId, businessName, verified,
+           valueDiscountTiers:[{minOrderValue, discountPct}])  // Layer 2
 
 Item(id, name, unit[kg|L|pack], photoUrl)
 
@@ -181,17 +206,22 @@ Pledge(id, dealId, userId, qty,        // any quantity
        heldAmount,                     // top-tier price × qty, escrowed on pledge
        status[active|locked|collected|refunded], createdAt)
 
-Order(id, dealId, status, totalAmount, deliveredAt?)  // pooled order to the wholesaler
+Order(id, cycleId, wholesalerId, societyId,   // one pooled order per wholesaler per cycle
+      lineItems:[{dealId, itemId, qty, tierPrice}],
+      grossValue,                              // Σ tierPrice × qty  (after Layer 1)
+      valueDiscountPct, netValue,              // after Layer 2 order-value tier
+      status, deliveredAt?)
 
 Wallet(id, userId, balance)
 WalletTxn(id, walletId, type[topup|hold|charge|refund], amount, dealId?, createdAt)
 ```
 
-Relationships: a **Deal** belongs to one Wholesaler + one Society; many
-**Pledges** point at a Deal; when it locks, pledges roll up into one **Order**.
-`totalPledgedQty` is the number the live progress bar reads. Each Pledge's
-`heldAmount` moves through the **Wallet** as hold → charge + refund on lock, or
-a full refund on cancel.
+Relationships: a **Cycle** holds many **Deals** (one per item); each Deal has
+many **Pledges**. At cutoff, all of a wholesaler's deals in the cycle roll up
+into **one Order** for that wholesaler — the unit that Layer-2 value discounts
+apply to. `totalPledgedQty` is the number the live progress bar reads. Each
+Pledge's `heldAmount` moves through the **Wallet** as hold → charge + refund on
+lock (Layer-1 and Layer-2 refunds), or a full refund on cancel.
 
 ---
 
@@ -242,6 +272,8 @@ later if you outgrow it.
   (default Mon / Thu / Sat); one pooled delivery per cycle to the society.
 - ✅ **Catalogue** — many items open per cycle; **one product per deal**;
   customers order any amount of any item.
+- ✅ **Two discount layers** — (1) per-item quantity tiers, plus (2) a
+  per-wholesaler order-value discount (e.g. ≥ ₹50k / ₹1L) shared back pro-rata.
 
 **Proposed defaults (confirm / overridable)**
 1. **Floor** — each item has a **minimum quantity** (default = the wholesaler's
