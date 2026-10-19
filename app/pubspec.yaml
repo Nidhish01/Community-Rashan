@@ -1,0 +1,31 @@
+name: community_rashan
+description: "Community Rashan — a neighbourhood group-buying grocery app."
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2        # simple state management for Phase 1
+  google_fonts: ^6.2.1    # Baloo 2 + Mukta (Devanagari + Latin)
+  intl: ^0.19.0           # ₹ number formatting (en_IN)
+
+  # --- Firebase (Phase 1 → 2) -----------------------------------------------
+  # The app runs on in-memory sample data out of the box so you can see it
+  # immediately. To connect the real backend, run `flutterfire configure`
+  # (see app/README.md) and then uncomment these:
+  # firebase_core: ^3.6.0
+  # cloud_firestore: ^5.4.4
+  # firebase_auth: ^5.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
