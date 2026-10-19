@@ -17,33 +17,46 @@ import 'theme.dart';
 bool get _firebaseConfigured =>
     !DefaultFirebaseOptions.currentPlatform.apiKey.contains('REPLACE');
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  var online = _firebaseConfigured;
-  AuthService auth;
-  if (online) {
-    try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
-          .timeout(const Duration(seconds: 8));
-      auth = FirebaseAuthService();
-    } catch (_) {
-      // Unreachable network or bad config — don't hang; run on sample data.
-      online = false;
-      auth = GuestAuthService();
-    }
-  } else {
-    auth = GuestAuthService();
-  }
-
-  runApp(CommunityRashanApp(auth: auth, online: online));
+  runApp(const Bootstrap());
 }
 
-class CommunityRashanApp extends StatelessWidget {
-  const CommunityRashanApp({super.key, required this.auth, required this.online});
-
+class _Boot {
   final AuthService auth;
   final bool online;
+  const _Boot(this.auth, this.online);
+}
+
+/// Shows a branded splash immediately, initializes Firebase in the background
+/// (with a timeout so it can never hang), then hands off to the app.
+class Bootstrap extends StatefulWidget {
+  const Bootstrap({super.key});
+
+  @override
+  State<Bootstrap> createState() => _BootstrapState();
+}
+
+class _BootstrapState extends State<Bootstrap> {
+  late final Future<_Boot> _future = _boot();
+
+  Future<_Boot> _boot() async {
+    var online = _firebaseConfigured;
+    AuthService auth;
+    if (online) {
+      try {
+        await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+            .timeout(const Duration(seconds: 8));
+        auth = FirebaseAuthService();
+      } catch (_) {
+        online = false; // unreachable / bad config — run on sample data
+        auth = GuestAuthService();
+      }
+    } else {
+      auth = GuestAuthService();
+    }
+    return _Boot(auth, online);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,38 +65,93 @@ class CommunityRashanApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),
-      home: AuthGate(auth: auth, online: online),
+      home: FutureBuilder<_Boot>(
+        future: _future,
+        builder: (context, snap) {
+          if (!snap.hasData) return const _Splash();
+          return AuthGate(auth: snap.data!.auth, online: snap.data!.online);
+        },
+      ),
     );
   }
 }
 
-/// Shows the login screen until signed in, then loads the catalogue (from
-/// Firestore when online, else sample data) and runs the app.
-class AuthGate extends StatelessWidget {
+/// Branded loading screen (so the first paint is never a blank spinner).
+class _Splash extends StatelessWidget {
+  const _Splash();
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: CR.green,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🛒', style: TextStyle(fontSize: 56)),
+            SizedBox(height: 12),
+            Text('Community Rashan',
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+            SizedBox(height: 20),
+            SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows login until signed in, then loads the catalogue (Firestore when online,
+/// else sample data) and runs the app. Never hangs: Firestore load is capped and
+/// falls back to sample data on any error/timeout.
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key, required this.auth, required this.online});
 
   final AuthService auth;
   final bool online;
 
   @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  Future<Repository>? _repoFuture;
+
+  Future<Repository> _loadRepo() async {
+    if (!widget.online) return MockRepository();
+    try {
+      return await FirestoreRepository.load().timeout(const Duration(seconds: 12));
+    } catch (_) {
+      // Firestore not created yet / unreachable — still show sample groceries.
+      return MockRepository();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<AppUser?>(
-      stream: auth.authStateChanges(),
+      stream: widget.auth.authStateChanges(),
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const _Loading();
+        final user = snap.data;
+        if (user == null) {
+          _repoFuture = null; // reset for the next sign-in
+          return LoginScreen(auth: widget.auth);
         }
-        if (snap.data == null) {
-          return LoginScreen(auth: auth);
-        }
+        _repoFuture ??= _loadRepo();
         return FutureBuilder<Repository>(
-          future: online ? FirestoreRepository.load() : Future<Repository>.value(MockRepository()),
+          future: _repoFuture,
           builder: (context, repoSnap) {
-            if (!repoSnap.hasData) return const _Loading();
+            if (repoSnap.connectionState != ConnectionState.done) {
+              return const _Splash();
+            }
+            final repo = repoSnap.data ?? MockRepository();
             return MultiProvider(
               providers: [
-                Provider<AuthService>.value(value: auth),
-                ChangeNotifierProvider<AppState>(create: (_) => AppState(repoSnap.data!)),
+                Provider<AuthService>.value(value: widget.auth),
+                ChangeNotifierProvider<AppState>(create: (_) => AppState(repo)),
               ],
               child: const RootScaffold(),
             );
@@ -92,11 +160,4 @@ class AuthGate extends StatelessWidget {
       },
     );
   }
-}
-
-class _Loading extends StatelessWidget {
-  const _Loading();
-  @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: CircularProgressIndicator()));
 }
