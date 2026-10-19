@@ -1,0 +1,43 @@
+name: Deploy web app to Firebase Hosting
+
+# Builds the Flutter web app and deploys it to Firebase Hosting on every push
+# to main. Needs one repo secret: FIREBASE_SERVICE_ACCOUNT (a Firebase service
+# account JSON). See docs/FIREBASE_SETUP.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "firebase.json"
+      - ".firebaserc"
+      - ".github/workflows/deploy-hosting.yml"
+  workflow_dispatch: {}
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: true
+
+      - name: Build web
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build web --release --no-tree-shake-icons
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: community-rashan

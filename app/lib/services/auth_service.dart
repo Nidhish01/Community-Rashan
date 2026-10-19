@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// A signed-in person, independent of the auth backend.
@@ -35,6 +36,12 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Future<void> signInWithGoogle() async {
+    if (kIsWeb) {
+      // Web: Firebase's built-in Google popup — no separate client ID needed.
+      await _auth.signInWithPopup(fb.GoogleAuthProvider());
+      return;
+    }
+    // Mobile: native Google sign-in → Firebase credential.
     final googleUser = await GoogleSignIn().signIn();
     if (googleUser == null) return; // user cancelled
     final googleAuth = await googleUser.authentication;
@@ -47,7 +54,7 @@ class FirebaseAuthService implements AuthService {
 
   @override
   Future<void> signOut() async {
-    await GoogleSignIn().signOut();
+    if (!kIsWeb) await GoogleSignIn().signOut();
     await _auth.signOut();
   }
 }
