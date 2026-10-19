@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,10 +24,12 @@ Future<void> main() async {
   AuthService auth;
   if (online) {
     try {
-      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+          .timeout(const Duration(seconds: 8));
       auth = FirebaseAuthService();
     } catch (_) {
-      online = false; // bad/placeholder config — stay offline on sample data
+      // Unreachable network or bad config — don't hang; run on sample data.
+      online = false;
       auth = GuestAuthService();
     }
   } else {
