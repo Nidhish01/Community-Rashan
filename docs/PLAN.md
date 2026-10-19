@@ -53,7 +53,8 @@ A Deal has:
 - A **wholesaler** supplying it
 - An **area** it's open to — a **named society with one fixed pickup point**
   (so only residents of that society can join → one delivery)
-- A **deadline** (e.g. "closes in 2 days")
+- A **cutoff day** — every deal belongs to a weekly **order cycle** that closes
+  on a fixed day (default: **Mon / Thu / Sat**); pledges collect until that cutoff
 - A **sliding price ladder** of several tiers — customers may pledge **any
   quantity**, and the price steps down as the pooled total grows:
 
@@ -68,20 +69,31 @@ There is **no single pass/fail target** — the deal simply settles at whichever
 tier the pooled total has reached when it closes. More neighbours joining only
 ever makes it cheaper.
 
+### Order cycles (the ordering rhythm)
+
+Deals don't each run on their own arbitrary clock — they run on a shared
+**weekly cycle**. The catalogue of items stays open for ordering until the next
+**cutoff day** (default **Mon / Thu / Sat**). During the window residents order
+any amount of any item; each item pools its own total on its own price ladder.
+On the cutoff day every deal in the cycle **locks together**, the pledges pool
+into one order per wholesaler, and a **single delivery** lands at the society's
+pickup point. Predictable days keep life simple for residents, wholesalers, and
+the coordinator alike.
+
 ### Deal lifecycle (state machine)
 
 ```
-OPEN ──(deadline hit; top tier may early-lock)──> LOCKED ──> CONFIRMED ──> DELIVERED ──> COMPLETED
+OPEN ──(cutoff day reached)──> LOCKED ──> CONFIRMED ──> DELIVERED ──> COMPLETED
   │                                                        
-  └──(deadline hit below floor — TBD §9)──> CANCELLED (everyone refunded)
+  └──(item below its floor at cutoff)──> CANCELLED (that item refunded)
 ```
 
 1. **OPEN** — customers pledge any quantity. A live progress bar shows
    `42 kg pooled · ₹38 now · +8 kg unlocks ₹34!`. The displayed price updates in
    real time as the pooled total crosses each tier.
-2. **LOCKED** — deadline reached (or the best tier is hit early). The **tier
-   price reached is now fixed for everyone**, including early joiners who saw a
-   higher price.
+2. **LOCKED** — cutoff day reached. Each item's **tier price reached is now
+   fixed for everyone**, including early joiners who saw a higher price. An item
+   below its floor drops out and is refunded; the rest of the cycle still ships.
 3. **CONFIRMED** — wholesaler accepts the pooled order; escrow captured at the
    locked price, the held difference refunded to each wallet.
 4. **DELIVERED** — one drop to the area's pickup point; coordinator marks received.
@@ -157,10 +169,12 @@ Wholesaler(id, userId, businessName, verified)
 
 Item(id, name, unit[kg|L|pack], photoUrl)
 
-Deal(id, itemId, wholesalerId, societyId,
+Cycle(id, societyId, opensAt, cutoffAt, deliveryAt, status)  // Mon/Thu/Sat rhythm
+
+Deal(id, cycleId, itemId, wholesalerId, societyId,
      tiers:[{minQty, pricePerUnit}],   // sliding ladder, ascending minQty
-     minFloorQty,                      // below this at close → CANCELLED (TBD §9)
-     deadline, status, lockedPricePerUnit?,
+     minFloorQty,                      // below this at cutoff → this item CANCELLED
+     status, lockedPricePerUnit?,
      totalPledgedQty)
 
 Pledge(id, dealId, userId, qty,        // any quantity
@@ -224,18 +238,20 @@ later if you outgrow it.
 - ✅ **Payments** — wallet / escrow pre-pay: hold top-tier price on pledge,
   charge the locked price and refund the difference on lock.
 - ✅ **Area** — a named society with one fixed pickup point.
+- ✅ **Ordering rhythm** — weekly **order cycles** closing on fixed cutoff days
+  (default Mon / Thu / Sat); one pooled delivery per cycle to the society.
+- ✅ **Catalogue** — many items open per cycle; **one product per deal**;
+  customers order any amount of any item.
 
-**Still open (to settle before Phase 1)**
-1. **Floor** — if almost nobody joins (e.g. 3 kg by deadline), do we ship at the
-   top/retail tier anyway, or set a **minimum quantity** below which the deal
-   cancels and refunds? (Protects the wholesaler from a pointless tiny delivery.)
-2. **Deal contents** — confirm **one product per deal** (recommended), vs a
-   basket of products in a single deal.
-
-**Proposed defaults (overridable)**
-3. **Wholesaler onboarding** — onboard manually/verify at first, open
+**Proposed defaults (confirm / overridable)**
+1. **Floor** — each item has a **minimum quantity** (default = the wholesaler's
+   smallest sellable unit, e.g. one sack). Clears the floor → ships at whatever
+   tier was reached (even top/retail). Below the floor → *that item* cancels and
+   refunds; the rest of the cycle still ships. (Alternative: always ship
+   everything, even 1 unit, at retail.)
+2. **Wholesaler onboarding** — onboard manually / verify at first, open
    self-signup later. (Safer for a pilot.)
-4. **Trust/fraud** — a pledge-and-no-collect is handled by coordinator vouching
+3. **Trust/fraud** — a pledge-and-no-collect is handled by coordinator vouching
    + a no-show flag; escrow pre-pay already removes most of this risk.
 
 ---
